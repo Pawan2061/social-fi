@@ -1,0 +1,350 @@
+🛑 Problem Statement
+
+Creators today live with financial fragility:
+
+Unpredictable income → bans, demonetization, canceled gigs, broken gear can wipe out revenue overnight.
+
+No safety net → traditional insurance doesn’t cover digital livelihoods (e.g., Twitch bans, NFT theft).
+
+Shallow fan support → Patreon/YouTube memberships give perks but don’t protect creators when they actually need help.
+
+👉 Result: creators face constant anxiety, while fans remain passive supporters instead of empowered backers.
+
+✅ Solution: Creator Insurance DAO
+
+A community-driven safety net that fuses NFT fan passes + insurance pools + AI assistance.
+
+Fans buy NFT Fan Passes → unlock exclusive gated content.
+
+A % of each pass goes into a Creator Protection Pool.
+
+When creators face setbacks → they file claims.
+
+Fans vote on claims (DAO governance).
+
+Payouts are automatic, transparent, and on-chain.
+
+AI makes the system human-friendly: summarizing claims, translating content, and generating fan updates.
+
+👉 It’s Patreon + TikTok + Mutual Insurance, powered by Web3 and enhanced by AI.
+
+✨ Key Features
+🎟️ Fan Pass NFTs
+
+Minted by creators.
+
+Unlock premium gated content (videos, livestreams, art).
+
+Tradable → early fans benefit if creator blows up.
+
+📰 Content Feed
+
+Scrollable, TikTok-style feed.
+
+Public posts (free for all).
+
+NFT-gated posts (unlocked only if fan holds creator’s NFT).
+
+Claim posts (AI-summarized requests for support).
+
+AI story updates (after payouts, auto-thank-you notes).
+
+🛡️ Creator Protection Pool
+
+% of NFT sales flow into pool.
+
+Transparent on-chain treasury.
+
+Smart contract functions: deposit(), fileClaim(), voteClaim(), payoutClaim().
+
+🗳️ DAO Governance
+
+Voting power = # of Fan Pass NFTs.
+
+Fans decide payouts → more than passive supporters.
+
+🤖 AI Assistance
+
+Claim Summarizer → condenses requests for voters.
+
+Proof Packager → extracts key details from receipts/screenshots.
+
+Fan Update Generator → auto-posts “thank you” stories.
+
+Translations + Captions → make content accessible worldwide.
+
+Pool Health Advisor → plain-English insights (“Pool strong: covers 8 average claims”).
+
+🏗️ System Overview
+
+Goal: “Patreon + TikTok + Mutual Insurance.”
+Shape: Next.js (web/app) + NestJS (APIs) + Solana (Anchor programs) + Metaplex (NFTs) + Vercel AI SDK (AI features) + S3/IPFS (content).
+
+🌐 Web2 Architecture (UX, APIs, AI, Storage)
+Frontend (Next.js)
+
+Pages/Views
+
+Feed (public + gated posts; claim cards; AI updates)
+
+Creator dashboard (post upload, mint Fan Pass, file claim, status)
+
+Fan dashboard (wallet, owned passes, voting)
+
+Claim detail (AI summary, evidence digest, vote)
+
+Pool dashboard (balance, history, AI pool insights)
+
+Integrations
+
+Solana Wallet Adapter (Phantom/Solflare)
+
+Token-gating middleware (calls NestJS → RPC check)
+
+Vercel AI SDK (server actions / route handlers for AI)
+
+Realtime (Next.js App Router + WebSocket/SSE for vote/payout updates)
+
+Backend (NestJS)
+
+Modules
+
+AuthModule → SIWS (Sign-In with Solana): nonce → wallet-sign → JWT
+
+ContentModule → posts CRUD, upload, transcodes
+
+GatingModule → verifies NFT ownership (RPC/Helius) per post
+
+ClaimModule → create/list claims, attach proofs, link to on-chain claim PDA
+
+VoteModule → submits on-chain voteClaim() tx via Anchor client
+
+PoolModule → reads pool state from program, webhooks for payout events
+
+AIProxyModule → calls Next.js AI routes or direct LLMs if needed
+
+EventsModule → Webhooks from Solana (Helius) → publish via Redis Pub/Sub
+
+APIs (REST)
+
+POST /auth/nonce, POST /auth/verify (SIWS → JWT)
+
+GET /feed?cursor= (returns mixed public/gated/claim posts + access flags)
+
+POST /content (creator upload; returns IDs and storage URLs)
+
+GET /content/:id (returns signed URL if access true)
+
+POST /claims (creates claim; stores IPFS hash; triggers AI summary)
+
+GET /claims/:id (claim + AI summary + vote tallies)
+
+POST /claims/:id/vote (submits vote on-chain)
+
+GET /pool (balance, stats, recent payouts)
+
+Background/Queues
+
+BullMQ (Redis):
+
+transcode-video (create HLS variants; thumbnails)
+
+ai-summarize-claim (LLM call, caching)
+
+ai-translate-content (multilingual captions)
+
+ai-story-update (post-payout “thank you”)
+
+Storage
+
+Media: S3 (private) + CloudFront CDN; optional Livepeer for streaming
+
+Decentralized: IPFS/Arweave for metadata & hash anchoring
+
+DB: Postgres (Supabase or RDS)
+
+Caching
+
+Redis: feed caching, access flags, rate limits, AI output cache
+
+AI Layer (Vercel AI SDK)
+
+Features
+
+Claim summarizer (2–3 lines)
+
+Evidence digest (extract item, cost, date, issue)
+
+Fan update generator (post-payout story)
+
+Translations & subtitles (multilingual)
+
+Sentiment gauge (aggregate comments → mood)
+
+Pool health explainer (plain-English stats)
+
+Placement
+
+Next.js route handlers (/api/ai/\*) called from NestJS
+
+Outputs stored in ai_artifacts table & Redis cache
+
+⛓️ Web3 Architecture (Solana + Anchor + Metaplex)
+Programs (Anchor)
+
+Fan Pass Collection (Metaplex Candy Machine v3)
+
+Creator mints collection; items represent access passes
+
+Metadata: creatorId, tier, perks, collectionAddress
+
+Insurance Pool Program
+
+Accounts
+
+Pool PDA (seeds: pool, creator/collection) — holds config & treasury token account (USDC SPL)
+
+Claim PDA (seeds: claim, pool, claimId) — status, amount, evidenceHash
+
+Vote PDA (seeds: vote, claim, voter) — vote + weight
+
+Config (quorum %, min stake %, voting window)
+
+Instructions
+
+createPool(config) — initialize pool for collection
+
+deposit(from sale) — split % of NFT sale → pool USDC ATA
+
+fileClaim(amount, evidenceHash) — creates claim PDA
+
+voteClaim(claim, choice) — weighted by # passes (or stake)
+
+finalizeClaim(claim) — checks quorum/majority; sets payable
+
+payoutClaim(claim, to) — transfers USDC from pool treasury
+
+Gating Check (off-chain)
+
+Backend verifies collection ownership using token metadata & verified collection
+
+Token Gating Details
+
+Owns any pass in collection? → unlock gated posts for that creator/tier
+
+Badge logic (tiers): gold/silver → extra perks (early access, higher vote weight—optional)
+
+On-Chain Events
+
+Emit logs on: ClaimFiled, VoteCast, ClaimFinalized, PayoutSent
+
+Consumed by webhook listener (Helius) → updates DB/UI & triggers AI story
+
+RPC & Providers
+
+Solana devnet for hackathon; mainnet later
+
+Providers: Helius/QuickNode (webhooks + RPC)
+
+🗃️ Data Model (Postgres)
+
+users (id, wallet, role[fan|creator|admin], created_at)
+creators (id, user_id, display_name, bio, collection_address, pool_address)
+posts (id, creator_id, type[video|image|text|claim|update], access[public|gated], nft_collection, storage_url, preview_url, caption, created_at)
+purchases (id, user_id, nft_mint, collection_address, tx_sig, created_at)
+claims (id, creator_id, onchain_claim_pda, amount_usdc, evidence_ipfs, status[pending|voting|approved|rejected|paid], created_at)
+votes (id, claim_id, user_id, choice[yes|no], weight, tx_sig, created_at)
+ai_artifacts (id, entity_type[claim|post|pool], entity_id, kind[summary|digest|story|translation|sentiment], content_json, created_at)
+transcodes (id, post_id, hls_url, status, created_at)
+
+🔐 Security & Compliance
+
+Auth: SIWS (nonce → wallet sign → JWT). Refresh tokens short-lived.
+
+Secrets: env in Vercel + AWS SSM; never client-side.
+
+Uploads: pre-signed S3 URLs; virus scan optional.
+
+Access control: RBAC (fan/creator/admin). Server-side gating only; no direct S3 links without signed URLs.
+
+Rate limiting: Redis sliding window per IP/wallet.
+
+Program safety: Anchor checks, PDAs with clear seeds, authority/multisig for createPool & finalizeClaim if needed.
+
+Treasury: SPL USDC in program-owned token account; payouts only via valid finalized claims.
+
+Upgradability: Program upgrade authority held by multisig (or locked post-audit).
+
+Legal note: claims about IRL losses can be sensitive—add ToS; avoid regulated insurance language in some jurisdictions (rename “protection pool” as needed).
+
+🚀 DevOps & Observability
+
+Environments: local → devnet (staging) → mainnet (prod)
+
+CI/CD: GitHub Actions
+
+Lint/test (web & api)
+
+Anchor tests (localnet)
+
+Preview deploy (Vercel/Render)
+
+Monitoring: Sentry (web/api), Logtail/Datadog; uptime pings
+
+Metrics: PostHog/Amplitude (events), custom KPIs (pool balance, claim SLA)
+
+CDN: CloudFront over S3; cache-control tuned for HLS segments
+
+🔄 Core Flows (Sequence)
+Feed Render
+
+Next.js → GET /feed
+
+NestJS pulls recent posts; for gated posts calls GatingModule (RPC) → append access=true/false
+
+Return mixed list; client renders unlocked or blurred with CTA
+
+Mint & Split
+
+Creator → Mint via Metaplex UI
+
+Fan buys → sale split on-chain: creator % + pool %
+
+Webhook (Helius) → NestJS updates purchases, pool UI
+
+File Claim → Vote → Payout
+
+Creator POST /claims (uploads proof) → AI summary queued
+
+NestJS calls fileClaim() with evidence_ipfs
+
+Fans open claim → see AI summary → POST /claims/:id/vote
+
+Program tallies; finalizeClaim() then payoutClaim()
+
+Webhook fires → NestJS posts AI “thank you” update to feed
+
+🧪 Testing Plan
+
+Unit: feed access, SIWS, gating checks
+
+Integration: upload → gated access → unlock after mint (mock RPC)
+
+E2E: claim lifecycle (file → vote → finalize → payout) against localnet/devnet
+
+Load: CDN/HLS segment delivery; Redis caching under scroll load
+
+🎯 Hackathon Trim (MVP)
+
+One collection per creator; single pool config
+
+USDC-only; simple majority, fixed 48h voting window
+
+S3 + CloudFront (skip Livepeer), IPFS only for evidence hash
+
+AI: claim summary + payout story (translations optional)---
+description:
+globs:
+alwaysApply: true
+
+---
