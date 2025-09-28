@@ -422,11 +422,11 @@ export default function CreatorInsuranceLanding() {
         {
           label: "Explore more",
           variant: "primary" as const,
-          onClick: () =>
-            window.open(
-              "https://shiny-ton-d33.notion.site/Colosseum-Hackathon-27cc7556734580d08d13d3088b3f8c4d",
-              "_blank"
-            ),
+          onClick: () => console.log("Explore more clicked"),
+          // window.open(
+          //   "https://shiny-ton-d33.notion.site/Colosseum-Hackathon-27cc7556734580d08d13d3088b3f8c4d",
+          //   "_blank"
+          // ),
         },
         // {
         //   label: "View Documentation",
