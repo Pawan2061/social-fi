@@ -1,6 +1,15 @@
 use anchor_lang::prelude::*;
 
 #[event]
+pub struct FactoryInitialized {
+    pub authority: Pubkey,
+    pub default_quorum: u64,
+    pub default_voting_window: i64,
+    pub platform_fee_percentage: u64,
+    pub usdc_mint: Pubkey,
+}
+
+#[event]
 pub struct CreatorPoolCreated {
     pub creator: Pubkey,
     pub pool: Pubkey,
@@ -26,7 +35,7 @@ pub struct VoteCast {
 #[event]
 pub struct ClaimFinalized {
     pub claim: Pubkey,
-    pub status: String, // "Approved" or "Rejected"
+    pub status: String,
     pub yes_votes: u64,
     pub no_votes: u64,
 }
