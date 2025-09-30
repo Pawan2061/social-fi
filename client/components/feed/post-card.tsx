@@ -11,10 +11,9 @@ import {
     Repeat2,
     Share,
     MoreHorizontal,
-    Bookmark
-} from 'lucide-react';
-
-interface PostCardProps {
+    Bookmark,
+    Crown
+} from 'lucide-react'; interface PostCardProps {
     id: string;
     author: {
         name: string;
@@ -28,6 +27,7 @@ interface PostCardProps {
     initialRetweets?: number;
     initialComments?: number;
     image?: string;
+    isPremium?: boolean;
 }
 
 export function PostCard({
@@ -38,7 +38,8 @@ export function PostCard({
     initialLikes = 0,
     initialRetweets = 0,
     initialComments = 0,
-    image
+    image,
+    isPremium = false
 }: PostCardProps) {
     const [likes, setLikes] = useState(initialLikes);
     const [retweets, setRetweets] = useState(initialRetweets);
@@ -119,6 +120,12 @@ export function PostCard({
                                         <svg className="w-3 h-3 text-black font-black" fill="currentColor" viewBox="0 0 20 20">
                                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                         </svg>
+                                    </div>
+                                )}
+                                {isPremium && (
+                                    <div className="bg-yellow-300 text-black px-2 py-1 border-2 border-black shadow-[2px_2px_0px_0px_#000] transform -rotate-6 flex items-center space-x-1">
+                                        <Crown className="w-3 h-3" />
+                                        <span className="text-xs font-extrabold">PREMIUM</span>
                                     </div>
                                 )}
                             </div>

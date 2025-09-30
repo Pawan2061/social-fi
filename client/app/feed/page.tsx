@@ -1,7 +1,11 @@
+'use client'
 import { PostCard } from '@/components/feed/post-card';
+import { PostFilterToggle, PostFilter } from '@/components/ui/post-filter-toggle';
+import { useState } from 'react';
 
 export default function FeedPage() {
-    const samplePosts = [
+    const [activeFilter, setActiveFilter] = useState<PostFilter>('all');
+    const allPosts = [
         {
             id: "1",
             author: {
@@ -13,7 +17,8 @@ export default function FeedPage() {
             timestamp: "2h",
             initialLikes: 127,
             initialRetweets: 23,
-            initialComments: 15
+            initialComments: 15,
+            isPremium: false
         },
         {
             id: "2",
@@ -26,7 +31,8 @@ export default function FeedPage() {
             timestamp: "4h",
             initialLikes: 89,
             initialRetweets: 34,
-            initialComments: 8
+            initialComments: 8,
+            isPremium: false
         },
         {
             id: "3",
@@ -35,11 +41,12 @@ export default function FeedPage() {
                 username: "techweekly",
                 verified: true
             },
-            content: "THREAD: 10 reasons why decentralized social networks will dominate in 2024 🧵\n\n1/ User ownership and control\n2/ Censorship resistance\n3/ Transparent algorithms\n4/ Creator monetization\n\nWhat do you think? Are we ready for the transition?",
+            content: "🔒 PREMIUM INSIGHT: Deep dive into Solana's upcoming validator economics changes. Exclusive analysis shows 35% APY potential for early stakers. Full report with detailed tokenomics breakdown available to premium subscribers only. 📊💎",
             timestamp: "6h",
             initialLikes: 456,
             initialRetweets: 178,
-            initialComments: 92
+            initialComments: 92,
+            isPremium: true
         },
         {
             id: "4",
@@ -52,9 +59,35 @@ export default function FeedPage() {
             timestamp: "8h",
             initialLikes: 67,
             initialRetweets: 12,
-            initialComments: 23
+            initialComments: 23,
+            isPremium: false
+        },
+        {
+            id: "5",
+            author: {
+                name: "Crypto Whale",
+                username: "cryptowhale",
+                verified: true
+            },
+            content: "🔒 PREMIUM ALPHA: Just discovered a hidden gem in the Solana ecosystem. This project is flying under the radar but has backing from top-tier VCs. Premium members get the full research report + entry strategy. Not financial advice, but... 👀🚀",
+            timestamp: "12h",
+            initialLikes: 234,
+            initialRetweets: 89,
+            initialComments: 56,
+            isPremium: true
         }
     ];
+
+    // Filter posts based on active filter
+    const filteredPosts = allPosts.filter(post => {
+        if (activeFilter === 'premium') {
+            return post.isPremium;
+        }
+        return true; // 'all' shows both premium and regular posts
+    });
+
+    const premiumPostsCount = allPosts.filter(post => post.isPremium).length;
+    const allPostsCount = allPosts.length;
 
     return (
         <div className="max-w-2xl mx-auto py-8">
@@ -69,15 +102,41 @@ export default function FeedPage() {
                 </div>
             </div>
 
+            {/* Post Filter Toggle */}
+            <div className="mb-6 px-4">
+                <PostFilterToggle
+                    activeFilter={activeFilter}
+                    onFilterChange={setActiveFilter}
+                    showCounts={true}
+                    allCount={allPostsCount}
+                    premiumCount={premiumPostsCount}
+                    className="transform rotate-1"
+                />
+            </div>
+
             <div className="space-y-6 px-4 pb-20 lg:pb-8">
-                {samplePosts.map((post, index) => (
-                    <div
-                        key={post.id}
-                        className={`transform ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 transition-transform`}
-                    >
-                        <PostCard {...post} />
+                {filteredPosts.length > 0 ? (
+                    filteredPosts.map((post, index) => (
+                        <div
+                            key={post.id}
+                            className={`transform ${index % 2 === 0 ? 'rotate-1' : '-rotate-1'} hover:rotate-0 transition-transform`}
+                        >
+                            <PostCard {...post} />
+                        </div>
+                    ))
+                ) : (
+                    <div className="text-center py-12">
+                        <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
+                            <h3 className="font-extrabold text-xl mb-2">No {activeFilter === 'premium' ? 'Premium' : ''} Posts Found</h3>
+                            <p className="text-gray-600 font-bold">
+                                {activeFilter === 'premium'
+                                    ? 'Subscribe to premium to access exclusive content!'
+                                    : 'No posts available at the moment.'
+                                }
+                            </p>
+                        </div>
                     </div>
-                ))}
+                )}
             </div>
         </div>
     );
