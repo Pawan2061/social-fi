@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
+
 import Navbar from "@/components/ui/navbar";
 import { BrutalGrid, NoiseOverlay } from "@/components/ui/backgrounds";
+import { SolanaWalletProvider } from "@/providers/WalletProvider"; // 👈 add this
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,7 +41,7 @@ export default function RootLayout({
         <NoiseOverlay />
         <div className="relative z-10">
           <Navbar />
-          {children}
+          <SolanaWalletProvider> {children}</SolanaWalletProvider>
         </div>
       </body>
     </html>
