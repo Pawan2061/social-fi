@@ -1,10 +1,10 @@
 import React from "react";
 
 interface BrutalGridProps {
-  size?: number; // grid cell size in px
-  majorSize?: number; // major grid interval in px
-  lineColor?: string; // minor line color
-  majorLineColor?: string; // major line color
+  size?: number;
+  majorSize?: number;
+  lineColor?: string;
+  majorLineColor?: string;
   className?: string;
 }
 
@@ -56,4 +56,4 @@ export const NoiseOverlay: React.FC<NoiseOverlayProps> = ({
   };
 
   return <div className={className} style={style} />;
-}; 
+};
