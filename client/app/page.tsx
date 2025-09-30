@@ -1,5 +1,9 @@
 import CreatorInsuranceLanding from "@/components/ui/landing-page";
 
 export default function Home() {
-  return <CreatorInsuranceLanding />;
+  return (
+    <main className="relative z-10">
+      <CreatorInsuranceLanding />
+    </main>
+  );
 }
