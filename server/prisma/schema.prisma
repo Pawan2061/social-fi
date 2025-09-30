@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -20,11 +14,95 @@ model User {
   email         String?  @unique
   emailVerified Boolean  @default(false)
   image         String?
+  wallet        String?  @unique // Solana wallet address
+  nonce         String? // login challenge nonce
+  onboarded     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
-  wallet        String?  @unique // user’s wallet address
-  nonce         String? // for login challenge
-  onboarded     Boolean  @default(false)
+
+  posts  Post[]
+  passes Ownership[]
+  claims Claim[]
+  votes  Vote[]
+  Pass   Pass[]
 
   @@map("user")
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  creatorId Int
+  creator   User     @relation(fields: [creatorId], references: [id])
+  caption   String?
+  isPremium Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  media Media[]
+}
+
+model Media {
+  id             Int     @id @default(autoincrement())
+  postId         Int
+  post           Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type           String // "video" | "image"
+  url            String // S3 key or CDN URL
+  thumbnail      String? // preview (esp. for video)
+  needsSignedUrl Boolean @default(true)
+}
+
+model Pass {
+  id        Int      @id @default(autoincrement())
+  creatorId Int
+  creator   User     @relation(fields: [creatorId], references: [id])
+  tokenMint String   @unique // NFT mint address (Solana SPL token)
+  price     Float
+  createdAt DateTime @default(now())
+
+  ownerships Ownership[]
+}
+
+model Ownership {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  passId    Int
+  pass      Pass     @relation(fields: [passId], references: [id])
+  creatorId Int
+  createdAt DateTime @default(now())
+
+  @@unique([userId, passId])
+}
+
+model Claim {
+  id        Int         @id @default(autoincrement())
+  creatorId Int
+  creator   User        @relation(fields: [creatorId], references: [id])
+  reason    String
+  proofUrl  String?
+  amount    Float
+  status    ClaimStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  votes Vote[]
+}
+
+model Vote {
+  id        Int      @id @default(autoincrement())
+  claimId   Int
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  approve   Boolean
+  createdAt DateTime @default(now())
+
+  @@unique([claimId, userId])
+}
+
+enum ClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
 }
