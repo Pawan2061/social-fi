@@ -104,7 +104,6 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
         />
       </div>
 
-      {/* Right nav dots - square brutalist indicators */}
       <div className="hidden sm:flex fixed right-3 sm:right-5 lg:right-8 top-1/2 -translate-y-1/2 z-40">
         <div className="space-y-3 sm:space-y-4 lg:space-y-6">
           {sections.map((section, index) => (
