@@ -1,10 +1,5 @@
 "use client";
-import React, {
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 interface ScrollGlobeProps {
@@ -154,7 +149,8 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
             "relative scroll-mt-24 min-h-screen flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:px-12 z-20 py-12 sm:py-16 lg:py-20",
             section.align === "center" && "items-center text-center",
             section.align === "right" && "items-end text-right",
-            (!section.align || section.align === "left") && "items-start text-left"
+            (!section.align || section.align === "left") &&
+              "items-start text-left"
           )}
         >
           <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
@@ -190,9 +186,7 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
               )}
             >
               <div className="bg-white text-foreground border-4 border-foreground p-4 sm:p-5 shadow-[8px_8px_0_0_#000]">
-                <p className="leading-relaxed">
-                  {section.description}
-                </p>
+                <p className="leading-relaxed">{section.description}</p>
               </div>
             </div>
 
@@ -225,7 +219,8 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
                   "flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4",
                   section.align === "center" && "justify-center",
                   section.align === "right" && "justify-end",
-                  (!section.align || section.align === "left") && "justify-start"
+                  (!section.align || section.align === "left") &&
+                    "justify-start"
                 )}
               >
                 {section.actions.map((action) => (
@@ -284,9 +279,21 @@ export default function CreatorInsuranceLanding() {
         "Our platform combines the best of Patreon, TikTok, and mutual insurance through Web3 technology. Fans become true backers while creators get the protection they deserve.",
       align: "left" as const,
       features: [
-        { title: "Fan Pass NFTs", description: "Tradable access passes that unlock exclusive content and provide voting power" },
-        { title: "AI-Powered Assistance", description: "Smart claim summaries, translations, and plain-English insights for everyone" },
-        { title: "Transparent Governance", description: "Community-driven decisions with on-chain voting and automatic payouts" },
+        {
+          title: "Fan Pass NFTs",
+          description:
+            "Tradable access passes that unlock exclusive content and provide voting power",
+        },
+        {
+          title: "AI-Powered Assistance",
+          description:
+            "Smart claim summaries, translations, and plain-English insights for everyone",
+        },
+        {
+          title: "Transparent Governance",
+          description:
+            "Community-driven decisions with on-chain voting and automatic payouts",
+        },
       ],
     },
     {
@@ -297,13 +304,9 @@ export default function CreatorInsuranceLanding() {
       description:
         "Join the revolution where fans become true backers and creators get the protection they deserve. Built on Solana with Metaplex NFTs for fast, cheap, and transparent transactions.",
       align: "center" as const,
-      actions: [
-        { label: "Explore more", variant: "primary" as const },
-      ],
+      actions: [{ label: "Explore more", variant: "primary" as const }],
     },
   ];
 
-  return (
-    <ScrollGlobe sections={sections} className="" />
-  );
+  return <ScrollGlobe sections={sections} className="" />;
 }
