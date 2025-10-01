@@ -38,4 +38,15 @@ pub mod contract {
     pub fn withdraw_from_pool(ctx: Context<WithdrawFromPool>, amount: u64) -> Result<()> {
         instructions::withdraw_from_pool(ctx, amount)
     }
+
+    pub fn deposit_from_nft_sale(
+        ctx: Context<DepositFromNftSale>,
+        total_amount: u64,
+    ) -> Result<()> {
+        instructions::deposit_from_nft_sale(ctx, total_amount)
+    }
+
+    pub fn verify_fan_pass(ctx: Context<VerifyFanPass>) -> Result<()> {
+        instructions::verify_fan_pass(ctx)
+    }
 }

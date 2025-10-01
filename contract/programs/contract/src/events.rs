@@ -61,3 +61,13 @@ pub struct NftOwnershipVerified {
     pub nft_mint: Pubkey,
     pub creator: Pubkey,
 }
+
+#[event]
+pub struct NftSaleRevenueDistributed {
+    pub creator: Pubkey,
+    pub creator_pool: Pubkey,
+    pub total_amount: u64,
+    pub creator_pool_amount: u64,
+    pub creator_amount: u64,
+    pub platform_fee: u64,
+}
