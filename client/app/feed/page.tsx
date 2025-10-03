@@ -23,6 +23,30 @@ export default function FeedPage() {
       initialRetweets: 23,
       initialComments: 15,
       isPremium: false,
+      media: [
+        {
+          id: "1",
+          type: "image" as const,
+          url: "/api/placeholder/600/400",
+          alt: "Solana smart contract code",
+          aspectRatio: "landscape" as const
+        },
+        {
+          id: "2",
+          type: "image" as const,
+          url: "/api/placeholder/600/400",
+          alt: "Deployment success screen",
+          aspectRatio: "landscape" as const
+        },
+        {
+          id: "3",
+          type: "video" as const,
+          url: "/api/placeholder/video/demo.mp4",
+          thumbnail: "/api/placeholder/600/400",
+          alt: "Smart contract demo video",
+          aspectRatio: "landscape" as const
+        }
+      ]
     },
     {
       id: "2",
@@ -53,6 +77,23 @@ export default function FeedPage() {
       initialRetweets: 178,
       initialComments: 92,
       isPremium: true,
+      media: [
+        {
+          id: "4",
+          type: "video" as const,
+          url: "/api/placeholder/video/analysis.mp4",
+          thumbnail: "/api/placeholder/600/400",
+          alt: "Solana validator economics analysis",
+          aspectRatio: "landscape" as const
+        },
+        {
+          id: "5",
+          type: "image" as const,
+          url: "/api/placeholder/600/400",
+          alt: "APY projection charts",
+          aspectRatio: "landscape" as const
+        }
+      ]
     },
     {
       id: "4",
@@ -117,9 +158,8 @@ export default function FeedPage() {
             filteredPosts.map((post, index) => (
               <div
                 key={post.id}
-                className={`transform ${
-                  index % 2 === 0 ? "rotate-1" : "-rotate-1"
-                } hover:rotate-0 transition-transform`}
+                className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"
+                  } hover:rotate-0 transition-transform`}
               >
                 <PostCard {...post} />
               </div>

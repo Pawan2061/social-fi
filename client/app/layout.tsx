@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import "@solana/wallet-adapter-react-ui/styles.css";
+// import "@solana/wallet-adapter-react-ui/styles.css";
 import "./globals.css";
 
 import Navbar from "@/components/ui/navbar";
@@ -41,7 +41,8 @@ export default function RootLayout({
         <NoiseOverlay />
         <div className="relative z-10">
           <Navbar />
-          <SolanaWalletProvider> {children}</SolanaWalletProvider>
+          {/* <SolanaWalletProvider> {children}</SolanaWalletProvider> */}
+          {children}
         </div>
       </body>
     </html>
