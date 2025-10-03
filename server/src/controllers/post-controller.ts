@@ -23,7 +23,7 @@ export const createPost = async (req: AuthRequest, res: Response) => {
             type: m.type,
             url: m.url,
             thumbnail: m.thumbnail,
-            needsSignedUrl: m.type === "video",
+            needsSignedUrl: true,
           })),
         },
       },
@@ -103,6 +103,12 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
     const items = await Promise.all(
       posts.slice(0, limit).map(async (post) => {
         const ownsPass = ownedCreatorIds.includes(post.creatorId);
+        const creator = {
+          ...post.creator,
+          image: post.creator.image
+            ? await getSignedUrlForMedia(post.creator.image)
+            : null,
+        };
 
         const media = await Promise.all(
           post.media.map(async (m) => {
@@ -119,7 +125,7 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
           })
         );
 
-        return { ...post, media };
+        return { ...post, media, creator };
       })
     );
 
@@ -156,24 +162,5 @@ export const signUpload = async (req: Request, res: Response) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Failed to get signed upload url" });
-  }
-};
-
-export const finishUpload = async (req: Request, res: Response) => {
-  try {
-    const { postId, type, key, thumbnail } = req.body;
-    const media = await prisma.media.create({
-      data: {
-        postId,
-        type,
-        url: key,
-        thumbnail,
-        needsSignedUrl: type === "video",
-      },
-    });
-    res.json(media);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to finish upload" });
   }
 };
