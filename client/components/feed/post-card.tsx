@@ -12,8 +12,23 @@ import {
     Share,
     MoreHorizontal,
     Bookmark,
-    Crown
-} from 'lucide-react'; interface PostCardProps {
+    Crown,
+    ChevronLeft,
+    ChevronRight,
+    Play,
+    Pause,
+    Volume2,
+    VolumeX
+} from 'lucide-react'; interface MediaItem {
+    id: string;
+    type: 'image' | 'video';
+    url: string;
+    thumbnail?: string; // For video thumbnails
+    alt?: string;
+    aspectRatio?: 'square' | 'landscape' | 'portrait';
+}
+
+interface PostCardProps {
     id: string;
     author: {
         name: string;
@@ -26,7 +41,8 @@ import {
     initialLikes?: number;
     initialRetweets?: number;
     initialComments?: number;
-    image?: string;
+    image?: string; // Keep for backward compatibility
+    media?: MediaItem[]; // New media array
     isPremium?: boolean;
 }
 
@@ -39,6 +55,7 @@ export function PostCard({
     initialRetweets = 0,
     initialComments = 0,
     image,
+    media = [],
     isPremium = false
 }: PostCardProps) {
     const [likes, setLikes] = useState(initialLikes);
@@ -46,6 +63,19 @@ export function PostCard({
     const [isLiked, setIsLiked] = useState(false);
     const [isRetweeted, setIsRetweeted] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
+
+    // Media gallery state
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
+    const [videoPlaying, setVideoPlaying] = useState<Record<string, boolean>>({});
+    const [videoMuted, setVideoMuted] = useState<Record<string, boolean>>({});
+
+    // Determine media to show (new media array or fallback to single image)
+    const displayMedia = media.length > 0 ? media : (image ? [{
+        id: '1',
+        type: 'image' as const,
+        url: image,
+        alt: 'Post image'
+    }] : []);
 
     const handleLike = () => {
         if (isLiked) {
@@ -68,12 +98,10 @@ export function PostCard({
     };
 
     const handleComment = () => {
-        // Handle comment action
         console.log('Comment clicked');
     };
 
     const handleShare = () => {
-        // Handle share action
         if (navigator.share) {
             navigator.share({
                 title: `${author.name} on Social`,
@@ -88,6 +116,33 @@ export function PostCard({
 
     const handleBookmark = () => {
         setIsBookmarked(!isBookmarked);
+    };
+
+    // Media navigation handlers
+    const nextMedia = () => {
+        setCurrentMediaIndex((prev) =>
+            prev === displayMedia.length - 1 ? 0 : prev + 1
+        );
+    };
+
+    const previousMedia = () => {
+        setCurrentMediaIndex((prev) =>
+            prev === 0 ? displayMedia.length - 1 : prev - 1
+        );
+    };
+
+    const toggleVideoPlay = (mediaId: string) => {
+        setVideoPlaying(prev => ({
+            ...prev,
+            [mediaId]: !prev[mediaId]
+        }));
+    };
+
+    const toggleVideoMute = (mediaId: string) => {
+        setVideoMuted(prev => ({
+            ...prev,
+            [mediaId]: !prev[mediaId]
+        }));
     };
 
     const formatNumber = (num: number) => {
@@ -148,15 +203,114 @@ export function PostCard({
                         {content}
                     </p>
 
-                    {image && (
-                        <div className="border-4 border-black shadow-[6px_6px_0px_0px_#000] transform rotate-1 hover:rotate-0 transition-transform">
-                            <Image
-                                src={image}
-                                alt="Post image"
-                                width={600}
-                                height={300}
-                                className="w-full max-h-96 object-cover"
-                            />
+                    {displayMedia.length > 0 && (
+                        <div className="border-4 border-black shadow-[6px_6px_0px_0px_#000] transform rotate-1 hover:rotate-0 transition-transform relative">
+                            {/* Media Container */}
+                            <div className="relative overflow-hidden bg-black">
+                                {/* Current Media Item */}
+                                {displayMedia.map((mediaItem, index) => (
+                                    <div
+                                        key={mediaItem.id}
+                                        className={`transition-transform duration-300 ease-in-out ${index === currentMediaIndex ? 'block' : 'hidden'
+                                            }`}
+                                    >
+                                        {mediaItem.type === 'image' ? (
+                                            <Image
+                                                src={mediaItem.url}
+                                                alt={mediaItem.alt || 'Post media'}
+                                                width={600}
+                                                height={300}
+                                                className="w-full max-h-96 object-cover"
+                                            />
+                                        ) : (
+                                            <div className="relative">
+                                                <video
+                                                    src={mediaItem.url}
+                                                    poster={mediaItem.thumbnail}
+                                                    className="w-full max-h-96 object-cover"
+                                                    controls={false}
+                                                    muted={videoMuted[mediaItem.id] || true}
+                                                    loop
+                                                    playsInline
+                                                    onPlay={() => setVideoPlaying(prev => ({ ...prev, [mediaItem.id]: true }))}
+                                                    onPause={() => setVideoPlaying(prev => ({ ...prev, [mediaItem.id]: false }))}
+                                                />
+
+                                                {/* Video Controls Overlay */}
+                                                <div className="absolute inset-0 flex items-center justify-center">
+                                                    <Button
+                                                        onClick={() => toggleVideoPlay(mediaItem.id)}
+                                                        className="bg-black/50 border-3 border-white shadow-[3px_3px_0_0_#000] p-3 hover:bg-black/70"
+                                                    >
+                                                        {videoPlaying[mediaItem.id] ? (
+                                                            <Pause className="w-6 h-6 text-white" />
+                                                        ) : (
+                                                            <Play className="w-6 h-6 text-white" />
+                                                        )}
+                                                    </Button>
+                                                </div>
+
+                                                {/* Mute/Unmute Button */}
+                                                <Button
+                                                    onClick={() => toggleVideoMute(mediaItem.id)}
+                                                    className="absolute top-3 right-3 bg-black/50 border-2 border-white p-2 hover:bg-black/70"
+                                                    size="sm"
+                                                >
+                                                    {videoMuted[mediaItem.id] ? (
+                                                        <VolumeX className="w-4 h-4 text-white" />
+                                                    ) : (
+                                                        <Volume2 className="w-4 h-4 text-white" />
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+
+                                {/* Navigation Arrows (only show if multiple media) */}
+                                {displayMedia.length > 1 && (
+                                    <>
+                                        <Button
+                                            onClick={previousMedia}
+                                            className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/70 border-3 border-white shadow-[3px_3px_0_0_#000] p-2 hover:bg-black/90"
+                                            size="sm"
+                                        >
+                                            <ChevronLeft className="w-5 h-5 text-white" />
+                                        </Button>
+
+                                        <Button
+                                            onClick={nextMedia}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/70 border-3 border-white shadow-[3px_3px_0_0_#000] p-2 hover:bg-black/90"
+                                            size="sm"
+                                        >
+                                            <ChevronRight className="w-5 h-5 text-white" />
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* Media Indicators/Dots (only show if multiple media) */}
+                            {displayMedia.length > 1 && (
+                                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex space-x-2">
+                                    {displayMedia.map((_, index) => (
+                                        <button
+                                            key={index}
+                                            onClick={() => setCurrentMediaIndex(index)}
+                                            className={`w-3 h-3 border-2 border-white shadow-[2px_2px_0_0_#000] transition-all transform hover:scale-110 ${index === currentMediaIndex
+                                                ? 'bg-yellow-300'
+                                                : 'bg-white/50 hover:bg-white/70'
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Media Counter (only show if multiple media) */}
+                            {displayMedia.length > 1 && (
+                                <div className="absolute top-3 left-3 bg-black/70 text-white px-3 py-1 border-2 border-white font-extrabold text-sm shadow-[2px_2px_0_0_#000]">
+                                    {currentMediaIndex + 1} / {displayMedia.length}
+                                </div>
+                            )}
                         </div>
                     )}
 

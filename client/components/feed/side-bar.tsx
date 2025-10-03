@@ -8,12 +8,9 @@ import {
   Bell,
   Search,
   MessageCircle,
-  Bookmark,
   User,
   Settings,
-  TrendingUp,
   Users,
-  Hash,
   Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -110,11 +107,10 @@ export function Sidebar({ user, className }: SidebarProps) {
           return (
             <Link key={item.name} href={item.href}>
               <div
-                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${
-                  active
-                    ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
-                    : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
-                }`}
+                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${active
+                  ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
+                  : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
+                  }`}
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="h-5 w-5" />
