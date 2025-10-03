@@ -14,8 +14,8 @@ model User {
   email         String?  @unique
   emailVerified Boolean  @default(false)
   image         String?
-  wallet        String?  @unique // Solana wallet address
-  nonce         String? // login challenge nonce
+  wallet        String?  @unique
+  nonce         String?
   onboarded     Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
@@ -24,7 +24,7 @@ model User {
   passes Ownership[]
   claims Claim[]
   votes  Vote[]
-  Pass   Pass[]
+  pass   Pass?
 
   @@map("user")
 }
@@ -43,21 +43,24 @@ model Post {
 
 model Media {
   id             Int     @id @default(autoincrement())
-  postId         Int
-  post           Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  type           String // "video" | "image"
-  url            String // S3 key or CDN URL
-  thumbnail      String? // preview (esp. for video)
+  postId         Int?
+  post           Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  type           String
+  url            String
+  thumbnail      String?
   needsSignedUrl Boolean @default(true)
+  Claim          Claim?  @relation(fields: [claimId], references: [id])
+  claimId        Int?
 }
 
 model Pass {
-  id        Int      @id @default(autoincrement())
-  creatorId Int
-  creator   User     @relation(fields: [creatorId], references: [id])
-  tokenMint String   @unique // NFT mint address (Solana SPL token)
-  price     Float
-  createdAt DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  creatorId     Int      @unique
+  creator       User     @relation(fields: [creatorId], references: [id])
+  tokenMint     String   @unique
+  vault_address String?  @unique
+  price         Float
+  createdAt     DateTime @default(now())
 
   ownerships Ownership[]
 }
@@ -79,13 +82,13 @@ model Claim {
   creatorId Int
   creator   User        @relation(fields: [creatorId], references: [id])
   reason    String
-  proofUrl  String?
+  media     Media[]
   amount    Float
   status    ClaimStatus @default(PENDING)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
-
-  votes Vote[]
+  validTill DateTime
+  votes     Vote[]
 }
 
 model Vote {
@@ -95,6 +98,8 @@ model Vote {
   userId    Int
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   approve   Boolean
+  txSig     String
+  blockSlot Int?
   createdAt DateTime @default(now())
 
   @@unique([claimId, userId])
