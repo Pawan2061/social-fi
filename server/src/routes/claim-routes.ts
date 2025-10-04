@@ -7,16 +7,35 @@ import {
   updateClaim,
   acceptClaim,
 } from "../controllers/claim-controller";
+import { validateData } from "../middleware/validation-middleware";
+import { createClaimSchema, acceptClaimSchema, updateClaimSchema } from "../zod/claim-schema";
+
 
 const claimRouter = Router();
 
-claimRouter.post("/", authenticate, createClaim);
+claimRouter.post(
+  "/",
+  authenticate,
+  validateData(createClaimSchema),
+  createClaim
+);
 
 claimRouter.get("/", authenticate, getClaims);
-claimRouter.post("/:claimId/accept", authenticate, acceptClaim);
+
+claimRouter.post(
+  "/:claimId/accept",
+  authenticate,
+  validateData(acceptClaimSchema),
+  acceptClaim
+);
 
 claimRouter.get("/:id", authenticate, getClaim);
 
-claimRouter.put("/:claimId", authenticate, updateClaim);
+claimRouter.put(
+  "/:claimId",
+  authenticate,
+  validateData(updateClaimSchema),
+  updateClaim
+);
 
 export default claimRouter;
