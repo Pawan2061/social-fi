@@ -126,10 +126,11 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
                 className={cn(
                   "relative w-3 h-3 sm:w-3.5 sm:h-3.5 lg:w-4 lg:h-4 transition-transform",
                   activeSection === index
-                    ? "bg-foreground"
-                    : "bg-white border-2 border-foreground",
-                  "shadow-[3px_3px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5"
+                    ? "bg-foreground scale-110"
+                    : "bg-white border-2 border-foreground scale-100",
+                  "shadow-[3px_3px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 will-change-transform"
                 )}
+                aria-current={activeSection === index ? "step" : undefined}
                 aria-label={`Go to ${section.badge || `section ${index + 1}`}`}
               />
             </div>
@@ -150,9 +151,20 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
             section.align === "center" && "items-center text-center",
             section.align === "right" && "items-end text-right",
             (!section.align || section.align === "left") &&
-              "items-start text-left"
+            "items-start text-left",
+            "transition-all duration-500 ease-out transform-gpu",
+            activeSection === index
+              ? "opacity-100 translate-y-0"
+              : "opacity-95 translate-y-1"
           )}
         >
+          {index === 0 && (
+            <>
+              <div className="pointer-events-none absolute -z-10 top-6 left-6 w-20 h-20 sm:w-24 sm:h-24 bg-white border-4 border-foreground shadow-[8px_8px_0_0_#000] rotate-6 opacity-90" />
+              <div className="pointer-events-none absolute -z-10 bottom-10 right-8 w-16 h-16 sm:w-20 sm:h-20 bg-yellow-300 border-4 border-foreground shadow-[8px_8px_0_0_#000] -rotate-3" />
+              <div className="pointer-events-none absolute -z-10 top-1/3 right-1/3 w-8 h-8 bg-cyan-300 border-4 border-foreground shadow-[6px_6px_0_0_#000]" />
+            </>
+          )}
           <div className="w-full max-w-sm sm:max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-5xl">
             {/* Title block */}
             <div className="inline-block bg-white text-foreground border-4 border-foreground px-3 sm:px-4 py-1 sm:py-1.5 mb-4 sm:mb-6 shadow-[6px_6px_0_0_#000]">
@@ -220,7 +232,7 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
                   section.align === "center" && "justify-center",
                   section.align === "right" && "justify-end",
                   (!section.align || section.align === "left") &&
-                    "justify-start"
+                  "justify-start"
                 )}
               >
                 {section.actions.map((action) => (
@@ -229,7 +241,7 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
                     onClick={action.onClick}
                     className={cn(
                       "relative px-6 sm:px-8 py-3 sm:py-4 font-extrabold",
-                      "border-4 border-foreground shadow-[6px_6px_0_0_#000] hover:-translate-x-1 hover:-translate-y-1 active:translate-x-0 active:translate-y-0 transition-transform",
+                      "border-4 border-foreground shadow-[6px_6px_0_0_#000] hover:-translate-x-1 hover:-translate-y-1 active:translate-x-0 active:translate-y-0 transition-transform will-change-transform",
                       action.variant === "primary"
                         ? "bg-yellow-300 text-black"
                         : "bg-white text-foreground"
@@ -256,10 +268,22 @@ export default function CreatorInsuranceLanding() {
       subtitle: "DAO",
       description:
         "A community-driven safety net that fuses NFT fan passes + insurance pools + AI assistance. Protect creators from financial fragility with transparent, on-chain protection.",
-      align: "left" as const,
+      align: "center" as const,
       actions: [
-        { label: "Start as Creator", variant: "primary" as const },
-        { label: "Join as Fan", variant: "secondary" as const },
+        {
+          label: "Start as Creator",
+          variant: "primary" as const,
+          onClick: () => {
+            document.getElementById("solution")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          },
+        },
+        {
+          label: "Join as Fan",
+          variant: "secondary" as const,
+          onClick: () => {
+            document.getElementById("future")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          },
+        },
       ],
     },
     {
