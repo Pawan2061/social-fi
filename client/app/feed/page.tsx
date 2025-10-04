@@ -27,22 +27,22 @@ export default function FeedPage() {
         {
           id: "1",
           type: "image" as const,
-          url: "/api/placeholder/600/400",
+          url: "https://images.unsplash.com/photo-1559526324-593bc073d938?w=600&auto=format&fit=crop&q=60",
           alt: "Solana smart contract code",
           aspectRatio: "landscape" as const
         },
         {
           id: "2",
           type: "image" as const,
-          url: "/api/placeholder/600/400",
+          url: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600&auto=format&fit=crop&q=60",
           alt: "Deployment success screen",
           aspectRatio: "landscape" as const
         },
         {
           id: "3",
           type: "video" as const,
-          url: "/api/placeholder/video/demo.mp4",
-          thumbnail: "/api/placeholder/600/400",
+          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
+          thumbnail: "https://images.unsplash.com/photo-1559526324-593bc073d938?w=600&auto=format&fit=crop&q=60",
           alt: "Smart contract demo video",
           aspectRatio: "landscape" as const
         }
@@ -81,15 +81,15 @@ export default function FeedPage() {
         {
           id: "4",
           type: "video" as const,
-          url: "/api/placeholder/video/analysis.mp4",
-          thumbnail: "/api/placeholder/600/400",
+          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+          thumbnail: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=60",
           alt: "Solana validator economics analysis",
           aspectRatio: "landscape" as const
         },
         {
           id: "5",
           type: "image" as const,
-          url: "/api/placeholder/600/400",
+          url: "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600&auto=format&fit=crop&q=60",
           alt: "APY projection charts",
           aspectRatio: "landscape" as const
         }

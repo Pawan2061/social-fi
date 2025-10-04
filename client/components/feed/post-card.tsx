@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -63,11 +63,16 @@ export function PostCard({
     const [isLiked, setIsLiked] = useState(false);
     const [isRetweeted, setIsRetweeted] = useState(false);
     const [isBookmarked, setIsBookmarked] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
 
     // Media gallery state
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
     const [videoPlaying, setVideoPlaying] = useState<Record<string, boolean>>({});
     const [videoMuted, setVideoMuted] = useState<Record<string, boolean>>({});
+
+    // Video ref for error handling
+    const videoRef = useRef<HTMLVideoElement>(null);
 
     // Determine media to show (new media array or fallback to single image)
     const displayMedia = media.length > 0 ? media : (image ? [{
@@ -154,6 +159,26 @@ export function PostCard({
         return num.toString();
     };
 
+    // Update the togglePlayPause function
+    const togglePlayPause = () => {
+        if (videoRef.current) {
+            if (isPlaying) {
+                videoRef.current.pause();
+            } else {
+                videoRef.current.play().catch(e => console.error('Error playing video:', e));
+            }
+            setIsPlaying(!isPlaying);
+        }
+    };
+
+    // Update the toggleMute function
+    const toggleMute = () => {
+        if (videoRef.current) {
+            videoRef.current.muted = !isMuted;
+            setIsMuted(!isMuted);
+        }
+    };
+
     return (
         <Card className="w-full max-w-2xl mx-auto border-4 border-black bg-white shadow-[8px_8px_0px_0px_#000] hover:shadow-[12px_12px_0px_0px_#000] transition-all duration-200 cursor-pointer transform hover:-translate-x-1 hover:-translate-y-1">
             <CardHeader className="pb-3 bg-white border-b-4 border-black">
@@ -223,45 +248,65 @@ export function PostCard({
                                                 className="w-full max-h-96 object-cover"
                                             />
                                         ) : (
-                                            <div className="relative">
+                                            <div className="relative w-full h-64 bg-black border-4 border-black shadow-[6px_6px_0_0_#000]">
                                                 <video
-                                                    src={mediaItem.url}
-                                                    poster={mediaItem.thumbnail}
-                                                    className="w-full max-h-96 object-cover"
+                                                    ref={videoRef}
+                                                    className="w-full h-full object-cover"
                                                     controls={false}
                                                     muted={videoMuted[mediaItem.id] || true}
                                                     loop
                                                     playsInline
-                                                    onPlay={() => setVideoPlaying(prev => ({ ...prev, [mediaItem.id]: true }))}
-                                                    onPause={() => setVideoPlaying(prev => ({ ...prev, [mediaItem.id]: false }))}
-                                                />
-
-                                                {/* Video Controls Overlay */}
-                                                <div className="absolute inset-0 flex items-center justify-center">
-                                                    <Button
-                                                        onClick={() => toggleVideoPlay(mediaItem.id)}
-                                                        className="bg-black/50 border-3 border-white shadow-[3px_3px_0_0_#000] p-3 hover:bg-black/70"
-                                                    >
-                                                        {videoPlaying[mediaItem.id] ? (
-                                                            <Pause className="w-6 h-6 text-white" />
-                                                        ) : (
-                                                            <Play className="w-6 h-6 text-white" />
-                                                        )}
-                                                    </Button>
-                                                </div>
-
-                                                {/* Mute/Unmute Button */}
-                                                <Button
-                                                    onClick={() => toggleVideoMute(mediaItem.id)}
-                                                    className="absolute top-3 right-3 bg-black/50 border-2 border-white p-2 hover:bg-black/70"
-                                                    size="sm"
+                                                    poster={mediaItem.thumbnail}
+                                                    onLoadedMetadata={() => console.log('Video metadata loaded:', mediaItem.url)}
+                                                    onError={(e) => console.error('Video failed to load:', mediaItem.url, e)}
+                                                    onLoadStart={() => console.log('Video load started:', mediaItem.url)}
                                                 >
-                                                    {videoMuted[mediaItem.id] ? (
-                                                        <VolumeX className="w-4 h-4 text-white" />
-                                                    ) : (
-                                                        <Volume2 className="w-4 h-4 text-white" />
-                                                    )}
-                                                </Button>
+                                                    <source src={mediaItem.url} type="video/mp4" />
+                                                    <source src={mediaItem.url} type="video/webm" />
+                                                    Your browser does not support the video tag.
+                                                </video>
+
+                                                {/* Show loading state */}
+                                                {!videoPlaying[mediaItem.id] && (
+                                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                                                        <div className="text-center">
+                                                            {/* Thumbnail as fallback background */}
+                                                            {mediaItem.thumbnail && (
+                                                                <Image
+                                                                    width={600}
+                                                                    height={300}
+                                                                    src={mediaItem.thumbnail}
+                                                                    alt="Video thumbnail"
+                                                                    className="absolute inset-0 w-full h-full object-cover -z-10"
+                                                                    onError={(e) => console.error('Thumbnail failed to load:', mediaItem.thumbnail)}
+                                                                />
+                                                            )}
+
+                                                            <button
+                                                                onClick={() => toggleVideoPlay(mediaItem.id)}
+                                                                className="bg-black/70 hover:bg-black/90 text-white p-4 rounded-full border-2 border-white shadow-[4px_4px_0_0_rgba(255,255,255,0.3)] hover:shadow-[6px_6px_0_0_rgba(255,255,255,0.3)] transition-all transform hover:scale-110 relative z-10"
+                                                                aria-label="Play video"
+                                                            >
+                                                                <Play className="w-8 h-8 ml-1" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Mute Button - only show when playing */}
+                                                {videoPlaying[mediaItem.id] && (
+                                                    <button
+                                                        onClick={() => toggleVideoMute(mediaItem.id)}
+                                                        className="absolute top-4 right-4 bg-black/70 hover:bg-black/90 text-white p-2 rounded-full border-2 border-white shadow-[2px_2px_0_0_rgba(255,255,255,0.3)] transition-all"
+                                                        aria-label={videoMuted[mediaItem.id] ? "Unmute video" : "Mute video"}
+                                                    >
+                                                        {videoMuted[mediaItem.id] ? (
+                                                            <VolumeX className="w-4 h-4" />
+                                                        ) : (
+                                                            <Volume2 className="w-4 h-4" />
+                                                        )}
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </div>
