@@ -20,11 +20,13 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
 
-  posts  Post[]
-  passes Ownership[]
-  claims Claim[]
-  votes  Vote[]
-  pass   Pass?
+  posts    Post[]
+  passes   Ownership[]
+  claims   Claim[]
+  votes    Vote[]
+  pass     Pass?
+  Widget   Widget[]
+  PollVote PollVote[]
 
   @@map("user")
 }
@@ -38,7 +40,8 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  media Media[]
+  media  Media[]
+  Widget Widget[]
 }
 
 model Media {
@@ -103,6 +106,61 @@ model Vote {
   createdAt DateTime @default(now())
 
   @@unique([claimId, userId])
+}
+
+model Widget {
+  id           Int          @id @default(autoincrement())
+  creatorId    Int
+  creator      User         @relation(fields: [creatorId], references: [id])
+  postId       Int?
+  post         Post?        @relation(fields: [postId], references: [id])
+  type         WidgetType
+  title        String
+  description  String?
+  targetValue  Int?
+  currentValue Int?
+  metric       GoalMetric?
+  expiresAt    DateTime?
+  status       WidgetStatus @default(ACTIVE)
+  createdAt    DateTime     @default(now())
+  pollOptions  PollOption[]
+  pollVotes    PollVote[]
+}
+
+model PollOption {
+  id       Int        @id @default(autoincrement())
+  widgetId Int
+  widget   Widget     @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  text     String
+  PollVote PollVote[]
+}
+
+model PollVote {
+  id        Int         @id @default(autoincrement())
+  widgetId  Int
+  widget    Widget      @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  optionId  Int?
+  option    PollOption? @relation(fields: [optionId], references: [id])
+  userId    Int
+  user      User        @relation(fields: [userId], references: [id])
+  createdAt DateTime    @default(now())
+
+  @@unique([widgetId, userId])
+}
+
+enum WidgetType {
+  GOAL
+  POLL
+}
+
+enum GoalMetric {
+  PASS_COUNT
+}
+
+enum WidgetStatus {
+  ACTIVE
+  COMPLETED
+  EXPIRED
 }
 
 enum ClaimStatus {
