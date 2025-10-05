@@ -61,9 +61,9 @@ export const getPost = async (req: AuthRequest, res: Response) => {
         if (!post.isPremium || ownsPass) {
           return {
             ...m,
-            url: m.needsSignedUrl
-              ? await getSignedUrlForMedia(m.url)
-              : `${PUBLIC_BUCKET_URL}/${m.url}`,
+            // url: m.needsSignedUrl
+            //   ? await getSignedUrlForMedia(m.url)
+            url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
             locked: false,
           };
         }
@@ -105,9 +105,10 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
         const ownsPass = ownedCreatorIds.includes(post.creatorId);
         const creator = {
           ...post.creator,
-          image: post.creator.image
-            ? await getSignedUrlForMedia(post.creator.image)
-            : null,
+          // image: post.creator.image
+          //   ? await getSignedUrlForMedia(post.creator.image)
+          //   : null,
+          image: `${PUBLIC_BUCKET_URL}/${post.creator.image}`,
         };
 
         const media = await Promise.all(
@@ -115,9 +116,11 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
             if (!post.isPremium || ownsPass) {
               return {
                 ...m,
-                url: m.needsSignedUrl
-                  ? await getSignedUrlForMedia(m.url)
-                  : `${PUBLIC_BUCKET_URL}/${m.url}`,
+                // url: m.needsSignedUrl
+                //   ? await getSignedUrlForMedia(m.url)
+                //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
+                url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+
                 locked: false,
               };
             }
