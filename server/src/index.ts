@@ -7,6 +7,7 @@ import passRouter from "./routes/pass-route";
 import claimRouter from "./routes/claim-routes";
 import voteRouter from "./routes/vote-route";
 import userRouter from "./routes/user-route";
+import mediaRouter from "./routes/media-route";
 
 dotenv.config();
 
@@ -17,16 +18,17 @@ const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 
-app.use("/auth", authRouter);
-app.use("/posts", postRouter);
-app.use("/pass", passRouter);
-app.use("/claim", claimRouter);
-app.use("/votes", voteRouter);
-app.use("/users", userRouter);
+const apiRouter = express.Router();
 
-app.get("/", (req, res) => {
-  res.send("🚀 API is running...");
-});
+apiRouter.use("/auth", authRouter);
+apiRouter.use("/posts", postRouter);
+apiRouter.use("/pass", passRouter);
+apiRouter.use("/claim", claimRouter);
+apiRouter.use("/votes", voteRouter);
+apiRouter.use("/users", userRouter);
+apiRouter.use("/media", mediaRouter);
+
+app.use("/api", apiRouter);
 
 app.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}`);

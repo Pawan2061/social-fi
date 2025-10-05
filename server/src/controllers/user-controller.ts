@@ -24,9 +24,11 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
         const media = await Promise.all(
           post.media.map(async (m) => ({
             ...m,
-            url: m.needsSignedUrl
-              ? await getSignedUrlForMedia(m.url)
-              : `${PUBLIC_BUCKET_URL}/${m.url}`,
+            url:
+              // m.needsSignedUrl
+              // ? await getSignedUrlForMedia(m.url)
+              // :
+              `${PUBLIC_BUCKET_URL}/${m.url}`,
             locked: false,
           }))
         );
