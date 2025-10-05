@@ -1,6 +1,9 @@
 "use client";
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { useWallet } from "@solana/wallet-adapter-react";
+import OnboardingModal from "@/components/modals/onboarding-modal";
 
 interface ScrollGlobeProps {
   sections: {
@@ -87,7 +90,6 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
         className
       )}
     >
-      {/* Progress Bar - neo-brutalist */}
       <div className="fixed top-0 left-0 w-full h-2 bg-border z-50">
         <div
           className="h-full bg-foreground will-change-transform"
@@ -138,7 +140,6 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
         </div>
       </div>
 
-      {/* Sections - neo-brutalist cards */}
       {sections.map((section, index) => (
         <section
           id={section.id}
@@ -151,7 +152,7 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
             section.align === "center" && "items-center text-center",
             section.align === "right" && "items-end text-right",
             (!section.align || section.align === "left") &&
-            "items-start text-left",
+              "items-start text-left",
             "transition-all duration-500 ease-out transform-gpu",
             activeSection === index
               ? "opacity-100 translate-y-0"
@@ -232,7 +233,7 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
                   section.align === "center" && "justify-center",
                   section.align === "right" && "justify-end",
                   (!section.align || section.align === "left") &&
-                  "justify-start"
+                    "justify-start"
                 )}
               >
                 {section.actions.map((action) => (
@@ -260,6 +261,30 @@ function ScrollGlobe({ sections, className }: ScrollGlobeProps) {
 }
 
 export default function CreatorInsuranceLanding() {
+  const { connected } = useWallet();
+  const { token, user } = useAuth();
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+
+  const handleGetStarted = () => {
+    if (!connected) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+
+    if (!token) {
+      alert("Authenticating... Please wait and try again.");
+      return;
+    }
+
+    if (user?.onboarded) {
+      // Already onboarded, go to feed
+      window.location.href = "/feed";
+    } else {
+      // Show onboarding modal
+      setShowOnboardingModal(true);
+    }
+  };
+
   const sections = [
     {
       id: "hero",
@@ -273,16 +298,12 @@ export default function CreatorInsuranceLanding() {
         {
           label: "Start as Creator",
           variant: "primary" as const,
-          onClick: () => {
-            document.getElementById("solution")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          },
+          onClick: handleGetStarted,
         },
         {
           label: "Join as Fan",
           variant: "secondary" as const,
-          onClick: () => {
-            document.getElementById("future")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          },
+          onClick: handleGetStarted,
         },
       ],
     },
@@ -332,5 +353,13 @@ export default function CreatorInsuranceLanding() {
     },
   ];
 
-  return <ScrollGlobe sections={sections} className="" />;
+  return (
+    <>
+      <ScrollGlobe sections={sections} className="" />
+      <OnboardingModal
+        isOpen={showOnboardingModal}
+        onClose={() => setShowOnboardingModal(false)}
+      />
+    </>
+  );
 }
