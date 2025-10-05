@@ -33,6 +33,7 @@ pub enum ClaimStatus {
     Rejected,
     Paid,
     Canceled,
+    Refunded,
 }
 
 impl Claim {

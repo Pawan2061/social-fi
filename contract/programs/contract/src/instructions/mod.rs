@@ -10,5 +10,5 @@ pub use creator_pool::*;
 pub mod claims;
 pub use claims::*;
 
-pub mod stakes;
-pub use stakes::*;
+pub mod voting;
+pub use voting::*;

@@ -61,8 +61,8 @@ pub fn deposit_from_nft_sale(ctx: Context<DepositFromNftSale>, total_amount: u64
     let factory = &ctx.accounts.factory;
 
     let platform_fee = (total_amount * factory.platform_fee_percentage) / 100;
-    let creator_pool_amount = (total_amount * 70) / 100; // 70% to creator pool
-    let creator_amount = total_amount - platform_fee - creator_pool_amount; // Remaining to creator
+    let creator_pool_amount = (total_amount * 70) / 100;
+    let creator_amount = total_amount - platform_fee - creator_pool_amount;
 
     let cpi_accounts_pool = anchor_spl::token::Transfer {
         from: ctx.accounts.from_token_account.to_account_info(),

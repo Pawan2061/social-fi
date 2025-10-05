@@ -21,8 +21,10 @@ pub struct CreatorPoolCreated {
 pub struct ClaimFiled {
     pub claim: Pubkey,
     pub creator: Pubkey,
+    pub creator_pool: Pubkey,
     pub pool_amount: u64,
     pub evidence_ipfs_hash: String,
+    pub voting_ends_at: i64,
 }
 
 #[event]
@@ -30,29 +32,41 @@ pub struct VoteCast {
     pub claim: Pubkey,
     pub voter: Pubkey,
     pub vote_choice: bool,
+    pub voted_at: i64,
 }
 
 #[event]
 pub struct ClaimFinalized {
     pub claim: Pubkey,
-    pub status: String,
+    pub creator: Pubkey,
+    pub creator_pool: Pubkey,
+    pub pool_amount: u64,
     pub yes_votes: u64,
     pub no_votes: u64,
+    pub status: String,
 }
 
 #[event]
-pub struct ClaimPaid {
+pub struct ClaimCanceled {
     pub claim: Pubkey,
     pub creator: Pubkey,
-    pub amount_paid: u64,
+    pub creator_pool: Pubkey,
+}
+
+#[event]
+pub struct PayoutSent {
+    pub claim: Pubkey,
+    pub creator: Pubkey,
+    pub creator_pool: Pubkey,
+    pub payout_amount: u64,
 }
 
 #[event]
 pub struct RefundDistributed {
     pub claim: Pubkey,
-    pub nft_holder: Pubkey,
-    pub nft_mint: Pubkey,
-    pub refund_amount: u64,
+    pub creator_pool: Pubkey,
+    pub total_refund_amount: u64,
+    pub nft_holders_count: u64,
 }
 
 #[event]
