@@ -5,6 +5,7 @@ import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
+import { PUBLIC_BUCKET_URL } from "../lib/storage";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -51,6 +52,10 @@ export const me = async (req: AuthRequest, res: Response) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.userId },
   });
+  const data = {
+    ...user,
+    image: user?.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+  };
 
-  res.json(user);
+  res.json(data);
 };

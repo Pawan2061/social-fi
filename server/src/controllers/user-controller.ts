@@ -36,7 +36,9 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       ...user,
-      image: user.image ? await getSignedUrlForMedia(user.image) : null,
+      // image: user.image ? await getSignedUrlForMedia(user.image) : null,
+      image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+
       posts,
     });
   } catch (e: any) {
