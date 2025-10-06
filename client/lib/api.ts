@@ -46,7 +46,7 @@ export async function getCurrentUser(token: string): Promise<User> {
 
 export async function completeOnboarding(
   token: string,
-  data: { name: string; email: string }
+  data: { name: string; email: string; image?: string }
 ): Promise<User> {
   const res = await fetch(`${API_URL}/users/onboard`, {
     method: "POST",
@@ -61,6 +61,50 @@ export async function completeOnboarding(
     throw new Error(error || "Failed to complete onboarding");
   }
   return res.json();
+}
+
+export async function getProfilePictureUploadUrl(
+  token: string,
+  fileName: string,
+  fileType: string
+): Promise<{ uploadUrl: string; key: string }> {
+  const res = await fetch(`${API_URL}/users/profile-picture/sign-upload`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ fileName, fileType }),
+  });
+  if (!res.ok) throw new Error("Failed to get upload URL");
+  return res.json();
+}
+
+export async function uploadProfilePicture(
+  file: File,
+  uploadUrl: string
+): Promise<void> {
+  try {
+    const res = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: {
+        "Content-Type": file.type,
+      },
+      mode: "cors",
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error("Upload failed:", res.status, errorText);
+      throw new Error(`Upload failed: ${res.status}`);
+    }
+  } catch (error) {
+    console.error("Upload error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to upload image"
+    );
+  }
 }
 
 export const storage = {

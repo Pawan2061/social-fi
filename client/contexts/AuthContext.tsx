@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const queryClient = useQueryClient();
 
-  // Load token from storage on mount
   useEffect(() => {
     const stored = storage.getToken();
     if (stored) {

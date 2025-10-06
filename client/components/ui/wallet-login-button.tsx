@@ -13,7 +13,6 @@ export default function WalletAuthButton() {
   const { token, user, setToken, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
 
-  // Auto-login when wallet connects
   useEffect(() => {
     const login = async () => {
       if (!connected || !publicKey || !signMessage || token) return;
@@ -21,7 +20,6 @@ export default function WalletAuthButton() {
       try {
         const address = publicKey.toBase58();
 
-        // Request nonce
         const res = await fetch("http://localhost:4000/auth/request-nonce", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -29,12 +27,10 @@ export default function WalletAuthButton() {
         });
         const { nonce } = await res.json();
 
-        // Sign nonce
         const encoded = new TextEncoder().encode(nonce);
         const sigBytes = await signMessage(encoded);
         const signature = bs58.encode(sigBytes);
 
-        // Verify signature and get token
         const verify = await fetch(
           "http://localhost:4000/auth/verify-signature",
           {
@@ -57,14 +53,12 @@ export default function WalletAuthButton() {
     login();
   }, [connected, publicKey, signMessage, token, setToken]);
 
-  // Redirect to feed when authenticated and onboarded
   useEffect(() => {
     if (token && user?.onboarded) {
       router.push("/feed");
     }
   }, [token, user, router]);
 
-  // Auto-logout when wallet disconnects
   useEffect(() => {
     if (!connected && token) {
       logout();
@@ -81,24 +75,30 @@ export default function WalletAuthButton() {
 
   return (
     <div className="flex items-center gap-3">
-      {/* User dropdown when authenticated and onboarded */}
       {token && user?.onboarded && (
         <div className="relative">
           <button
             onClick={() => setShowDropdown(!showDropdown)}
             className="flex items-center gap-2 bg-white border-2 border-foreground px-3 py-1.5 shadow-[3px_3px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform"
           >
-            <div className="w-6 h-6 bg-yellow-300 border-2 border-foreground rounded-full flex items-center justify-center">
-              <span className="text-xs font-extrabold">
-                {user.name?.charAt(0).toUpperCase() || "?"}
-              </span>
-            </div>
+            {user.image ? (
+              <img
+                src={user.image}
+                alt={user.name || "User"}
+                className="w-6 h-6 border-2 border-foreground rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-6 h-6 bg-yellow-300 border-2 border-foreground rounded-full flex items-center justify-center">
+                <span className="text-xs font-extrabold">
+                  {user.name?.charAt(0).toUpperCase() || "?"}
+                </span>
+              </div>
+            )}
             <span className="text-sm font-bold hidden sm:block">
               {user.name}
             </span>
           </button>
 
-          {/* Dropdown */}
           {showDropdown && (
             <>
               <div
