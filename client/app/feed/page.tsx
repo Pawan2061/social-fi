@@ -7,139 +7,114 @@ import {
 import { useState } from "react";
 import CreatePostPopup from "@/components/feed/create-post-popup";
 import { Button } from "@/components/ui/button";
+import { useFeed } from "@/hooks/use-feed";
+import { FeedItem } from "@/types/feed/feed-types";
+
+// Helper function to format relative time
+function getRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffInMs = now.getTime() - date.getTime();
+  const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  const diffInDays = Math.floor(diffInHours / 24);
+
+  if (diffInMinutes < 1) return "now";
+  if (diffInMinutes < 60) return `${diffInMinutes}m`;
+  if (diffInHours < 24) return `${diffInHours}h`;
+  if (diffInDays < 7) return `${diffInDays}d`;
+
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric'
+  });
+}
 
 export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
-  const allPosts = [
-    {
-      id: "1",
-      author: {
-        name: "Sarah Chen",
-        username: "sarahchen",
-        verified: true,
-      },
-      content:
-        "Just deployed my first smart contract on Solana! 🚀 The developer experience is incredible. Can't wait to build more decentralized applications. #Solana #Web3 #BuildInPublic",
-      timestamp: "2h",
-      initialLikes: 127,
-      initialRetweets: 23,
-      initialComments: 15,
-      isPremium: false,
-      media: [
-        {
-          id: "1",
-          type: "image" as const,
-          url: "https://images.unsplash.com/photo-1559526324-593bc073d938?w=600&auto=format&fit=crop&q=60",
-          alt: "Solana smart contract code",
-          aspectRatio: "landscape" as const
-        },
-        {
-          id: "2",
-          type: "image" as const,
-          url: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?w=600&auto=format&fit=crop&q=60",
-          alt: "Deployment success screen",
-          aspectRatio: "landscape" as const
-        },
-        {
-          id: "3",
-          type: "video" as const,
-          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4",
-          thumbnail: "https://images.unsplash.com/photo-1559526324-593bc073d938?w=600&auto=format&fit=crop&q=60",
-          alt: "Smart contract demo video",
-          aspectRatio: "landscape" as const
-        }
-      ]
+
+  // Fetch feed data using the hook
+  const { data: feedData, isLoading, error, refetch } = useFeed();
+
+  // Transform API data to match PostCard props
+  const transformedPosts = feedData?.items?.map((item: FeedItem) => ({
+    id: item.id.toString(),
+    author: {
+      name: item.creator.name,
+      username: item.creator.wallet.slice(0, 8) + "...", // Use wallet as username
+      verified: item.creator.emailVerified,
+      avatar: item.creator.image || undefined,
     },
-    {
-      id: "2",
-      author: {
-        name: "Alex Rodriguez",
-        username: "alexr_dev",
-        verified: false,
-      },
-      content:
-        "Hot take: The future of social media is decentralized. No more platform lock-in, true ownership of content, and transparent algorithms. We're building that future today! 🌐✨",
-      timestamp: "4h",
-      initialLikes: 89,
-      initialRetweets: 34,
-      initialComments: 8,
-      isPremium: false,
-    },
-    {
-      id: "3",
-      author: {
-        name: "Tech Weekly",
-        username: "techweekly",
-        verified: true,
-      },
-      content:
-        "🔒 PREMIUM INSIGHT: Deep dive into Solana's upcoming validator economics changes. Exclusive analysis shows 35% APY potential for early stakers. Full report with detailed tokenomics breakdown available to premium subscribers only. 📊💎",
-      timestamp: "6h",
-      initialLikes: 456,
-      initialRetweets: 178,
-      initialComments: 92,
-      isPremium: true,
-      media: [
-        {
-          id: "4",
-          type: "video" as const,
-          url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
-          thumbnail: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&auto=format&fit=crop&q=60",
-          alt: "Solana validator economics analysis",
-          aspectRatio: "landscape" as const
-        },
-        {
-          id: "5",
-          type: "image" as const,
-          url: "https://images.unsplash.com/photo-1642790106117-e829e14a795f?w=600&auto=format&fit=crop&q=60",
-          alt: "APY projection charts",
-          aspectRatio: "landscape" as const
-        }
-      ]
-    },
-    {
-      id: "4",
-      author: {
-        name: "Maria Santos",
-        username: "mariasantos",
-        verified: false,
-      },
-      content:
-        "GM everyone! ☀️ Working on something exciting in the social-fi space. Can't share details yet but it's going to be game-changing for creators and their communities. Stay tuned! 👀",
-      timestamp: "8h",
-      initialLikes: 67,
-      initialRetweets: 12,
-      initialComments: 23,
-      isPremium: false,
-    },
-    {
-      id: "5",
-      author: {
-        name: "Crypto Whale",
-        username: "cryptowhale",
-        verified: true,
-      },
-      content:
-        "🔒 PREMIUM ALPHA: Just discovered a hidden gem in the Solana ecosystem. This project is flying under the radar but has backing from top-tier VCs. Premium members get the full research report + entry strategy. Not financial advice, but... 👀🚀",
-      timestamp: "12h",
-      initialLikes: 234,
-      initialRetweets: 89,
-      initialComments: 56,
-      isPremium: true,
-    },
-  ];
+    content: item.caption || "",
+    timestamp: getRelativeTime(new Date(item.createdAt)),
+    initialLikes: Math.floor(Math.random() * 200), // Mock data - replace with real data when available
+    initialRetweets: Math.floor(Math.random() * 50),
+    initialComments: Math.floor(Math.random() * 30),
+    isPremium: item.isPremium,
+    media: (() => {
+      const supportedMedia = item.media?.filter(media =>
+        media.type === 'image' || media.type === 'video'
+      ) || [];
+
+      return supportedMedia.length > 0 ? supportedMedia.map(media => ({
+        id: media.id.toString(),
+        type: media.type as "image" | "video",
+        url: media.url || "",
+        thumbnail: media.thumbnail || undefined,
+        alt: `${media.type} content`,
+        aspectRatio: "landscape" as const
+      })) : undefined;
+    })()
+  })) || [];
+
+  const allPosts = transformedPosts;
 
   // Filter posts based on active filter
   const filteredPosts = allPosts.filter((post) => {
     if (activeFilter === "premium") {
       return post.isPremium;
     }
-    return true; 
+    return true;
   });
 
   const premiumPostsCount = allPosts.filter((post) => post.isPremium).length;
   const allPostsCount = allPosts.length;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto py-8 relative">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-black border-t-transparent mx-auto mb-4"></div>
+            <p className="font-extrabold text-xl">Loading feed...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto py-8 relative">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="bg-red-50 border-4 border-red-500 shadow-[6px_6px_0_0_#ef4444] p-8 transform rotate-1">
+            <h3 className="font-extrabold text-xl mb-2 text-red-700">Error Loading Feed</h3>
+            <p className="text-red-600 font-bold mb-4">
+              {error instanceof Error ? error.message : "Failed to load posts"}
+            </p>
+            <Button
+              onClick={() => refetch()}
+              className="bg-red-500 text-white border-4 border-red-700 shadow-[4px_4px_0_0_#b91c1c] hover:shadow-[6px_6px_0_0_#b91c1c] hover:-translate-x-1 hover:-translate-y-1 font-extrabold"
+            >
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto py-8 relative">
@@ -199,6 +174,7 @@ export default function FeedPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
+            refetch(); // Refetch the feed when a new post is created
           }}
         />
       )}
