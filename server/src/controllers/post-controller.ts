@@ -12,7 +12,7 @@ export const createPost = async (req: AuthRequest, res: Response) => {
     let userId = req?.user?.userId;
 
     const { caption, isPremium, media } = req.body;
-     userId = Number(userId)
+    userId = Number(userId)
 
     const post = await prisma.post.create({
       data: {
@@ -83,7 +83,7 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
   try {
     const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
     const limit = parseInt((req.query.limit as string) || "10", 10);
-    const userId = req.user?.userId;
+    const userId = Number(req.user?.userId);
 
     const ownerships = await prisma.ownership.findMany({
       where: { userId },

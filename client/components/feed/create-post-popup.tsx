@@ -7,12 +7,10 @@ import { Button } from "@/components/ui/button";
 import { X, Upload, Video, Lock, Globe, Loader2 } from "lucide-react";
 import Image from "next/image";
 
-// Helper to join class names
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-// UI: Simple input components matching theme
 function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
   return (
     <label htmlFor={htmlFor} className="text-sm font-extrabold text-black">
@@ -121,8 +119,8 @@ async function putFileToSignedUrl(uploadUrl: string, file: File) {
 }
 
 async function createPost(payload: { caption?: string; isPremium?: boolean; media?: Array<{ type: string; url: string; thumbnail?: string | null }> }): Promise<CreatedPost> {
-    console.log(JSON.stringify(payload))
-    const res = await fetchWithAuth("/posts", {
+  console.log(JSON.stringify(payload))
+  const res = await fetchWithAuth("/posts", {
     method: "POST",
     body: JSON.stringify(payload),
   });
