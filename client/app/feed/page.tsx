@@ -5,9 +5,12 @@ import {
   PostFilter,
 } from "@/components/ui/post-filter-toggle";
 import { useState } from "react";
+import CreatePostPopup from "@/components/feed/create-post-popup";
+import { Button } from "@/components/ui/button";
 
 export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
+  const [showCreate, setShowCreate] = useState(false);
   const allPosts = [
     {
       id: "1",
@@ -132,14 +135,14 @@ export default function FeedPage() {
     if (activeFilter === "premium") {
       return post.isPremium;
     }
-    return true; // 'all' shows both premium and regular posts
+    return true; 
   });
 
   const premiumPostsCount = allPosts.filter((post) => post.isPremium).length;
   const allPostsCount = allPosts.length;
 
   return (
-    <div className="max-w-2xl mx-auto py-8">
+    <div className="max-w-2xl mx-auto py-8 relative">
       <div className="mb-6 px-4">
         <PostFilterToggle
           activeFilter={activeFilter}
@@ -180,6 +183,25 @@ export default function FeedPage() {
           )}
         </div>
       </div>
+
+      {/* Floating create post button */}
+      <div className="fixed bottom-6 right-6">
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] hover:-translate-x-1 hover:-translate-y-1 font-extrabold"
+        >
+          Create Post
+        </Button>
+      </div>
+
+      {showCreate && (
+        <CreatePostPopup
+          onClose={() => setShowCreate(false)}
+          onCreated={() => {
+            setShowCreate(false);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import CreatePostPopup from "@/components/feed/create-post-popup";
 
 interface NavigationItem {
   name: string;
@@ -35,6 +36,7 @@ interface SidebarProps {
 
 export function Sidebar({ user, className }: SidebarProps) {
   const pathname = usePathname();
+  const [showCreate, setShowCreate] = useState(false);
 
   const navigationItems: NavigationItem[] = [
     {
@@ -129,7 +131,7 @@ export function Sidebar({ user, className }: SidebarProps) {
 
       {/* Create Post Button */}
       <div className="mb-8">
-        <Button className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold text-lg py-4 transform hover:-translate-x-1 hover:-translate-y-1 transition-all">
+        <Button onClick={() => setShowCreate(true)} className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold text-lg py-4 transform hover:-translate-x-1 hover:-translate-y-1 transition-all">
           <Plus className="h-5 w-5 mr-2" />
           CREATE POST
         </Button>
@@ -176,6 +178,12 @@ export function Sidebar({ user, className }: SidebarProps) {
             </div>
           </Link>
         </div>
+      )}
+      {showCreate && (
+        <CreatePostPopup
+          onClose={() => setShowCreate(false)}
+          onCreated={() => setShowCreate(false)}
+        />
       )}
     </div>
   );

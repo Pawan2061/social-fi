@@ -18,6 +18,8 @@ pub struct CreatorPool {
 
     pub status: PoolStatus,
 
+    pub claim_count: u64,
+
     pub bump: u8,
 }
 
@@ -29,5 +31,5 @@ pub enum PoolStatus {
 }
 
 impl CreatorPool {
-    pub const LEN: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 1 + 1;
+    pub const LEN: usize = 8 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 1 + 8 + 1;
 }

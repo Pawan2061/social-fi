@@ -14,6 +14,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
         pass: true,
         posts: { include: { media: true } },
         passes: { include: { pass: true } },
+        Widget: true,
       },
     });
 
@@ -24,9 +25,13 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
         const media = await Promise.all(
           post.media.map(async (m) => ({
             ...m,
-            url: m.needsSignedUrl
-              ? await getSignedUrlForMedia(m.url)
-              : `${PUBLIC_BUCKET_URL}/${m.url}`,
+            // url:
+            //   m.needsSignedUrl
+            //   ? await getSignedUrlForMedia(m.url)
+            //   :
+            //   `${PUBLIC_BUCKET_URL}/${m.url}`,
+            url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+
             locked: false,
           }))
         );
@@ -36,7 +41,9 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       ...user,
-      image: user.image ? await getSignedUrlForMedia(user.image) : null,
+      // image: user.image ? await getSignedUrlForMedia(user.image) : null,
+      image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+
       posts,
     });
   } catch (e: any) {
@@ -55,6 +62,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
       include: {
         pass: true,
         posts: { include: { media: true } },
+        Widget: true,
       },
     });
 
@@ -72,13 +80,20 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
             if (!post.isPremium || ownsPass) {
               return {
                 ...m,
-                url: m.needsSignedUrl
-                  ? await getSignedUrlForMedia(m.url)
-                  : `${PUBLIC_BUCKET_URL}/${m.url}`,
+                // url: m.needsSignedUrl
+                //   ? await getSignedUrlForMedia(m.url)
+                //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
+                url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+
                 locked: false,
               };
             }
-            return { ...m, url: null, locked: true };
+            return {
+              ...m,
+              url: null,
+              locked: true,
+              widget: ownsPass ? user.Widget : null,
+            };
           })
         );
         return { ...post, media };
@@ -87,7 +102,9 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       ...user,
+      // image: user.image ? await getSignedUrlForMedia(user.image) : null,
       image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+
       posts,
       ownsPass,
     });
@@ -115,7 +132,9 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       ...updated,
-      image: updated.image ? await getSignedUrlForMedia(updated.image) : null,
+      // image: updated.image ? await getSignedUrlForMedia(updated.image) : null,
+      // image: user.image ? await getSignedUrlForMedia(user.image) : null,
+      image: updated.image ? `${PUBLIC_BUCKET_URL}/${updated.image}` : null,
     });
   } catch (e: any) {
     console.error(e);
@@ -149,8 +168,12 @@ export const onboardUser = async (req: AuthRequest, res: Response) => {
 
     res.status(200).json({
       ...updatedUser,
+      // image: updatedUser.image
+      //   ? await getSignedUrlForMedia(updatedUser.image)
+      //   : null,
+      // image: user.image ? await getSignedUrlForMedia(user.image) : null,
       image: updatedUser.image
-        ? await getSignedUrlForMedia(updatedUser.image)
+        ? `${PUBLIC_BUCKET_URL}/${updatedUser.image}`
         : null,
     });
   } catch (e: any) {

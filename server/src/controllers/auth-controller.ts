@@ -5,6 +5,7 @@ import nacl from "tweetnacl";
 import bs58 from "bs58";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
+import { PUBLIC_BUCKET_URL } from "../lib/storage";
 
 const JWT_SECRET = process.env.JWT_SECRET!;
 
@@ -46,11 +47,23 @@ export const verifySignature = async (req: Request, res: Response) => {
 };
 
 export const me = async (req: AuthRequest, res: Response) => {
-  if (!req.user) return res.status(401).send("Unauthorized");
+  try {
+    if (!req.user) return res.status(401).send("Unauthorized");
 
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.userId },
-  });
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+    });
 
-  res.json(user);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const userWithImage = {
+      ...user,
+      image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+    };
+
+    res.json(userWithImage);
+  } catch (e: any) {
+    console.error("Error in me:", e);
+    res.status(500).json({ message: e.message });
+  }
 };

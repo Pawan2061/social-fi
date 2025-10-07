@@ -5,6 +5,8 @@ pub mod events;
 pub mod instructions;
 pub mod state;
 use crate::instructions::*;
+use crate::state::VoteChoice;
+
 #[program]
 pub mod contract {
     use super::*;
@@ -48,5 +50,33 @@ pub mod contract {
 
     pub fn verify_fan_pass(ctx: Context<VerifyFanPass>) -> Result<()> {
         instructions::verify_fan_pass(ctx)
+    }
+
+    pub fn file_claim(ctx: Context<FileClaim>, evidence_ipfs_hash: String) -> Result<()> {
+        instructions::file_claim(ctx, evidence_ipfs_hash)
+    }
+
+    pub fn cancel_claim(ctx: Context<CancelClaim>) -> Result<()> {
+        instructions::cancel_claim(ctx)
+    }
+
+    pub fn finalize_claim(ctx: Context<FinalizeClaim>) -> Result<()> {
+        instructions::finalize_claim(ctx)
+    }
+
+    pub fn payout_claim(ctx: Context<PayoutClaim>) -> Result<()> {
+        instructions::payout_claim(ctx)
+    }
+
+    pub fn refund_claim(ctx: Context<RefundClaim>) -> Result<()> {
+        instructions::refund_claim(ctx)
+    }
+
+    pub fn vote(ctx: Context<Vote>, choice: VoteChoice) -> Result<()> {
+        instructions::vote(ctx, choice)
+    }
+
+    pub fn change_vote(ctx: Context<ChangeVote>, new_choice: VoteChoice) -> Result<()> {
+        instructions::change_vote(ctx, new_choice)
     }
 }

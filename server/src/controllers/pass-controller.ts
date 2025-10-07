@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
-import { getSignedUrlForMedia } from "../lib/storage";
+import { getSignedUrlForMedia, PUBLIC_BUCKET_URL } from "../lib/storage";
 
 export const createPass = async (req: AuthRequest, res: Response) => {
   try {
@@ -54,9 +54,10 @@ export const getPass = async (req: AuthRequest, res: Response) => {
     });
     const creatorWithImage = {
       ...pass.creator,
-      image: pass.creator.image
-        ? await getSignedUrlForMedia(pass.creator.image)
-        : null,
+      // image: pass.creator.image
+      //   ? await getSignedUrlForMedia(pass.creator.image)
+      //   : null,
+      image: `${PUBLIC_BUCKET_URL}/${pass.creator.image}`,
     };
 
     res.status(200).json({

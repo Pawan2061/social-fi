@@ -105,6 +105,7 @@ pub fn create_pool(
 
     creator_pool.total_deposited = 0;
     creator_pool.total_withdrawn = 0;
+    creator_pool.claim_count = 0;
 
     creator_pool.voting_quorum = if voting_quorum > 0 {
         voting_quorum
