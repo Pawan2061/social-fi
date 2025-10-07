@@ -9,13 +9,14 @@ import { AuthRequest } from "../middleware/auth-middleware";
 
 export const createPost = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req?.user?.userId;
+    let userId = req?.user?.userId;
 
     const { caption, isPremium, media } = req.body;
+     userId = Number(userId)
 
     const post = await prisma.post.create({
       data: {
-        creatorId: userId as number,
+        creatorId: userId,
         caption: caption || null,
         isPremium: Boolean(isPremium),
         media: {
