@@ -1,0 +1,14 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth-middleware");
+const claim_controller_1 = require("../controllers/claim-controller");
+const validation_middleware_1 = require("../middleware/validation-middleware");
+const claim_schema_1 = require("../zod/claim-schema");
+const claimRouter = (0, express_1.Router)();
+claimRouter.post("/", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(claim_schema_1.createClaimSchema), claim_controller_1.createClaim);
+claimRouter.get("/", auth_middleware_1.authenticate, claim_controller_1.getClaims);
+claimRouter.post("/:claimId/accept", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(claim_schema_1.acceptClaimSchema), claim_controller_1.acceptClaim);
+claimRouter.get("/:id", auth_middleware_1.authenticate, claim_controller_1.getClaim);
+claimRouter.put("/:claimId", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(claim_schema_1.updateClaimSchema), claim_controller_1.updateClaim);
+exports.default = claimRouter;
