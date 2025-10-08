@@ -33,12 +33,9 @@ export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
 
-  // Fetch feed data using the hook
   const { data: feedData, isLoading, error, refetch } = useFeed();
 
-  // Transform API data to match PostCard props and filter out locked content
   const transformedPosts = feedData?.items?.filter((item: FeedItem) => {
-    // If the post is premium and has locked media, don't show it in the feed
     if (item.isPremium && item.media?.some(media => media.locked)) {
       return false;
     }
@@ -47,13 +44,13 @@ export default function FeedPage() {
     id: item.id.toString(),
     author: {
       name: item.creator.name,
-      username: item.creator.wallet.slice(0, 8) + "...", // Use wallet as username
+      username: item.creator.wallet.slice(0, 8) + "...",
       verified: item.creator.emailVerified,
       avatar: item.creator.image || undefined,
     },
     content: item.caption || "",
     timestamp: getRelativeTime(new Date(item.createdAt)),
-    initialLikes: Math.floor(Math.random() * 200), // Mock data - replace with real data when available
+    initialLikes: Math.floor(Math.random() * 200),
     initialRetweets: Math.floor(Math.random() * 50),
     initialComments: Math.floor(Math.random() * 30),
     isPremium: item.isPremium,

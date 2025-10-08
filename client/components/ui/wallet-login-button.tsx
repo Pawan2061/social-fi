@@ -15,6 +15,7 @@ export default function WalletAuthButton() {
   const { token, user, setToken, logout, isLoading } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const [walletInitialized, setWalletInitialized] = useState(false);
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   useEffect(() => {
     const login = async () => {
@@ -33,6 +34,7 @@ export default function WalletAuthButton() {
 
         const { token: newToken } = await verifySignature(address, signature);
         setToken(newToken);
+        setJustLoggedIn(true);
         console.log("✅ Logged in");
       } catch (error) {
         console.error("❌ Login failed:", error);
@@ -43,10 +45,11 @@ export default function WalletAuthButton() {
   }, [connected, publicKey, signMessage, token, setToken, isLoading]);
 
   useEffect(() => {
-    if (token && user?.onboarded) {
+    if (user?.onboarded && justLoggedIn) {
       router.push("/feed");
+      setJustLoggedIn(false);
     }
-  }, [token, user, router]);
+  }, [user, router, justLoggedIn]);
 
   // Track wallet initialization to prevent premature logout
   useEffect(() => {
@@ -79,9 +82,11 @@ export default function WalletAuthButton() {
             className="flex items-center gap-2 bg-white border-2 border-foreground px-3 py-1.5 shadow-[3px_3px_0_0_#000] hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform"
           >
             {user.image ? (
-              <img
+              <Image
                 src={user.image}
                 alt={user.name || "User"}
+                width={24}
+                height={24}
                 className="w-6 h-6 border-2 border-foreground rounded-full object-cover"
               />
             ) : (

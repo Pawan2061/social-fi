@@ -32,7 +32,6 @@ export function useFeed() {
     })
 }
 
-// Hook to invalidate feed cache
 export function useInvalidateFeed() {
     const queryClient = useQueryClient()
 
@@ -41,7 +40,6 @@ export function useInvalidateFeed() {
     }
 }
 
-// Hook for optimistic updates (optional - for even faster UI updates)
 export function useOptimisticFeedUpdate() {
     const queryClient = useQueryClient()
 
