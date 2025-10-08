@@ -236,6 +236,7 @@ export function PostCard({
                                     >
                                         {mediaItem.type === 'image' ? (
                                             <Image
+                                            loading='lazy'
                                                 src={mediaItem.url}
                                                 alt={mediaItem.alt || 'Post media'}
                                                 width={600}
