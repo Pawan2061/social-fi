@@ -8,6 +8,20 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
+      {
+        protocol: "https",
+        hostname: "dib3gcifsty30.cloudfront.net",
+      },
+
+      {
+        protocol: "https",
+        hostname: "commondatastorage.googleapis.com",
+      },
+      // Add localhost for development
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
     ],
   },
 };
