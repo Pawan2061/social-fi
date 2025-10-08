@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
-import { getSignedUrlForMedia, PUBLIC_BUCKET_URL } from "../lib/storage";
+import { resolveMediaUrl } from "../lib/image-helper";
 
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
   try {
@@ -30,7 +30,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
             //   ? await getSignedUrlForMedia(m.url)
             //   :
             //   `${PUBLIC_BUCKET_URL}/${m.url}`,
-            url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+            url: m.url ? resolveMediaUrl(m.url) : null,
 
             locked: false,
           }))
@@ -42,7 +42,7 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
     res.status(200).json({
       ...user,
       // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-      image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+      image: user.image ? resolveMediaUrl(user.image) : null,
 
       posts,
     });
@@ -83,7 +83,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
                 // url: m.needsSignedUrl
                 //   ? await getSignedUrlForMedia(m.url)
                 //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
-                url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+                url: m.url ? resolveMediaUrl(m.url) : null,
 
                 locked: false,
               };
@@ -103,7 +103,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
     res.status(200).json({
       ...user,
       // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-      image: user.image ? `${PUBLIC_BUCKET_URL}/${user.image}` : null,
+      image: user.image ? resolveMediaUrl(user.image) : null,
 
       posts,
       ownsPass,
@@ -134,7 +134,7 @@ export const updateMyProfile = async (req: AuthRequest, res: Response) => {
       ...updated,
       // image: updated.image ? await getSignedUrlForMedia(updated.image) : null,
       // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-      image: updated.image ? `${PUBLIC_BUCKET_URL}/${updated.image}` : null,
+      image: updated.image ? resolveMediaUrl(updated.image) : null,
     });
   } catch (e: any) {
     console.error(e);
@@ -172,9 +172,7 @@ export const onboardUser = async (req: AuthRequest, res: Response) => {
       //   ? await getSignedUrlForMedia(updatedUser.image)
       //   : null,
       // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-      image: updatedUser.image
-        ? `${PUBLIC_BUCKET_URL}/${updatedUser.image}`
-        : null,
+      image: updatedUser.image ? resolveMediaUrl(updatedUser.image) : null,
     });
   } catch (e: any) {
     console.error(e);

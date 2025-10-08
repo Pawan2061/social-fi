@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
-import { getSignedUrlForMedia } from "../lib/storage";
+import { resolveMediaUrl } from "../lib/image-helper";
 
 export const createClaim = async (req: AuthRequest, res: Response) => {
   try {
@@ -50,7 +50,7 @@ export const getClaim = async (req: AuthRequest, res: Response) => {
     const media = await Promise.all(
       claim.media.map(async (m) => ({
         ...m,
-        url: await getSignedUrlForMedia(m.url),
+        url: await resolveMediaUrl(m.url),
       }))
     );
 
@@ -60,7 +60,7 @@ export const getClaim = async (req: AuthRequest, res: Response) => {
       creator: {
         ...claim.creator,
         image: claim.creator.image
-          ? await getSignedUrlForMedia(claim.creator.image)
+          ? await resolveMediaUrl(claim.creator.image)
           : null,
       },
     });
@@ -88,7 +88,7 @@ export const getClaims = async (req: AuthRequest, res: Response) => {
         const media = await Promise.all(
           claim.media.map(async (m) => ({
             ...m,
-            url: await getSignedUrlForMedia(m.url),
+            url: await resolveMediaUrl(m.url),
           }))
         );
 
@@ -98,7 +98,7 @@ export const getClaims = async (req: AuthRequest, res: Response) => {
           creator: {
             ...claim.creator,
             image: claim.creator.image
-              ? await getSignedUrlForMedia(claim.creator.image)
+              ? await resolveMediaUrl(claim.creator.image)
               : null,
           },
         };

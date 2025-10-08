@@ -2,7 +2,7 @@ import { Response } from "express";
 import { prisma } from "../lib/prisma";
 import { AuthRequest } from "../middleware/auth-middleware";
 import { CreateWidgetInput } from "../zod/widget-poll-schema";
-import { PUBLIC_BUCKET_URL } from "../lib/storage";
+import { resolveMediaUrl } from "../lib/image-helper";
 
 export const createWidget = async (req: AuthRequest, res: Response) => {
   try {
@@ -158,9 +158,7 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
         creator: {
           id: w.creator.id,
           name: w.creator.name,
-          image: w.creator.image
-            ? `${PUBLIC_BUCKET_URL}/${w.creator.image}`
-            : null,
+          image: w.creator.image ? resolveMediaUrl(w.creator.image) : null,
         },
       };
     });
@@ -238,7 +236,7 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
       creator: {
         ...widget.creator,
         image: widget.creator.image
-          ? `${PUBLIC_BUCKET_URL}/${widget.creator.image}`
+          ? resolveMediaUrl(widget.creator.image)
           : null,
       },
     };

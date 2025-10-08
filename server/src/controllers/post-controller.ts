@@ -6,13 +6,13 @@ import {
   getSignedUploadUrl,
 } from "../lib/storage";
 import { AuthRequest } from "../middleware/auth-middleware";
+import { resolveMediaUrl } from "../lib/image-helper";
 
 export const createPost = async (req: AuthRequest, res: Response) => {
   try {
     let userId = req?.user?.userId;
-
     const { caption, isPremium, media } = req.body;
-    userId = Number(userId)
+    userId = Number(userId);
 
     const post = await prisma.post.create({
       data: {
@@ -47,6 +47,7 @@ export const getPost = async (req: AuthRequest, res: Response) => {
       where: { id: postId },
       include: { media: true, creator: true },
     });
+
     if (!post) return res.status(404).json({ error: "Post not found" });
 
     let ownsPass = false;
@@ -62,9 +63,7 @@ export const getPost = async (req: AuthRequest, res: Response) => {
         if (!post.isPremium || ownsPass) {
           return {
             ...m,
-            // url: m.needsSignedUrl
-            //   ? await getSignedUrlForMedia(m.url)
-            url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
+            url: resolveMediaUrl(m.url),
             locked: false,
           };
         }
@@ -106,10 +105,7 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
         const ownsPass = ownedCreatorIds.includes(post.creatorId);
         const creator = {
           ...post.creator,
-          // image: post.creator.image
-          //   ? await getSignedUrlForMedia(post.creator.image)
-          //   : null,
-          image: `${PUBLIC_BUCKET_URL}/${post.creator.image}`,
+          image: resolveMediaUrl(post.creator.image),
         };
 
         const media = await Promise.all(
@@ -117,11 +113,7 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
             if (!post.isPremium || ownsPass) {
               return {
                 ...m,
-                // url: m.needsSignedUrl
-                //   ? await getSignedUrlForMedia(m.url)
-                //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
-                url: m.url ? `${PUBLIC_BUCKET_URL}/${m.url}` : null,
-
+                url: resolveMediaUrl(m.url),
                 locked: false,
               };
             }
