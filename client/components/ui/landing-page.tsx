@@ -277,10 +277,8 @@ export default function CreatorInsuranceLanding() {
     }
 
     if (user?.onboarded) {
-      // Already onboarded, go to feed
       window.location.href = "/feed";
     } else {
-      // Show onboarding modal
       setShowOnboardingModal(true);
     }
   };

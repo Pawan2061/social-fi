@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
 export interface User {
   id: number;
@@ -37,7 +37,7 @@ export async function verifySignature(
 }
 
 export async function getCurrentUser(token: string): Promise<User> {
-  const res = await fetch(`${API_URL}/api/auth/me`, {
+  const res = await fetch(`${API_URL}/auth/me`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!res.ok) throw new Error("Failed to get user");
@@ -48,7 +48,7 @@ export async function completeOnboarding(
   token: string,
   data: { name: string; email: string; image?: string }
 ): Promise<User> {
-  const res = await fetch(`${API_URL}/api/users/onboard`, {
+  const res = await fetch(`${API_URL}/users/onboard`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
