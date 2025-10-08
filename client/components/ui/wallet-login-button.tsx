@@ -20,11 +20,14 @@ export default function WalletAuthButton() {
       try {
         const address = publicKey.toBase58();
 
-        const res = await fetch("http://localhost:4000/auth/request-nonce", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address }),
-        });
+        const res = await fetch(
+          "http://localhost:4000/api/auth/request-nonce",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ address }),
+          }
+        );
         const { nonce } = await res.json();
 
         const encoded = new TextEncoder().encode(nonce);
@@ -32,7 +35,7 @@ export default function WalletAuthButton() {
         const signature = bs58.encode(sigBytes);
 
         const verify = await fetch(
-          "http://localhost:4000/auth/verify-signature",
+          "http://localhost:4000/api/auth/verify-signature",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
