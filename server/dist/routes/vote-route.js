@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth-middleware");
+const vote_controller_1 = require("../controllers/vote-controller");
+const vote_schema_1 = require("../zod/vote-schema");
+const validation_middleware_1 = require("../middleware/validation-middleware");
+const voteRouter = (0, express_1.Router)();
+voteRouter.get("/:claimId", auth_middleware_1.authenticate, vote_controller_1.getVoteCounts);
+voteRouter.post("/:claimId", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(vote_schema_1.addVoteSchema), vote_controller_1.addVote);
+exports.default = voteRouter;

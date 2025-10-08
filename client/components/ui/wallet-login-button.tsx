@@ -6,55 +6,41 @@ import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import bs58 from "bs58";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
+import { requestNonce, verifySignature } from "@/lib/api";
+import Image from "next/image";
 
 export default function WalletAuthButton() {
   const router = useRouter();
   const { publicKey, signMessage, connected } = useWallet();
-  const { token, user, setToken, logout } = useAuth();
+  const { token, user, setToken, logout, isLoading } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
+  const [walletInitialized, setWalletInitialized] = useState(false);
 
   useEffect(() => {
     const login = async () => {
-      if (!connected || !publicKey || !signMessage || token) return;
+      // Wait for auth context to initialize and don't login if already has token
+      if (!connected || !publicKey || !signMessage || token || isLoading)
+        return;
 
       try {
         const address = publicKey.toBase58();
 
-        const res = await fetch(
-          "http://localhost:4000/api/auth/request-nonce",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ address }),
-          }
-        );
-        const { nonce } = await res.json();
+        const { nonce } = await requestNonce(address);
 
         const encoded = new TextEncoder().encode(nonce);
         const sigBytes = await signMessage(encoded);
         const signature = bs58.encode(sigBytes);
 
-        const verify = await fetch(
-          "http://localhost:4000/api/auth/verify-signature",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ address, signature }),
-          }
-        );
-
-        if (verify.ok) {
-          const data = await verify.json();
-          setToken(data.token);
-          console.log("✅ Logged in");
-        }
+        const { token: newToken } = await verifySignature(address, signature);
+        setToken(newToken);
+        console.log("✅ Logged in");
       } catch (error) {
         console.error("❌ Login failed:", error);
       }
     };
 
     login();
-  }, [connected, publicKey, signMessage, token, setToken]);
+  }, [connected, publicKey, signMessage, token, setToken, isLoading]);
 
   useEffect(() => {
     if (token && user?.onboarded) {
@@ -62,13 +48,21 @@ export default function WalletAuthButton() {
     }
   }, [token, user, router]);
 
+  // Track wallet initialization to prevent premature logout
   useEffect(() => {
-    if (!connected && token) {
+    if (connected || publicKey) {
+      setWalletInitialized(true);
+    }
+  }, [connected, publicKey]);
+
+  useEffect(() => {
+    // Only logout if wallet was previously connected and now disconnected
+    if (!connected && token && walletInitialized) {
       logout();
       router.push("/");
       console.log("❌ Wallet disconnected, logged out");
     }
-  }, [connected, token, logout, router]);
+  }, [connected, token, logout, router, walletInitialized]);
 
   const handleLogout = () => {
     logout();

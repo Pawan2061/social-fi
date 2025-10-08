@@ -1,0 +1,15 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const auth_middleware_1 = require("../middleware/auth-middleware");
+const user_controller_1 = require("../controllers/user-controller");
+const user_profile_picture_controller_1 = require("../controllers/user-profile-picture-controller");
+const validation_middleware_1 = require("../middleware/validation-middleware");
+const user_schema_1 = require("../zod/user-schema");
+const userRouter = (0, express_1.Router)();
+userRouter.get("/me", auth_middleware_1.authenticate, user_controller_1.getMyProfile);
+userRouter.put("/me", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(user_schema_1.updateMyProfileSchema), user_controller_1.updateMyProfile);
+userRouter.post("/onboard", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(user_schema_1.onboardUserSchema), user_controller_1.onboardUser);
+userRouter.post("/profile-picture/sign-upload", auth_middleware_1.authenticate, user_profile_picture_controller_1.signProfilePictureUpload);
+userRouter.get("/:id", auth_middleware_1.authenticate, user_controller_1.getUserProfile);
+exports.default = userRouter;
