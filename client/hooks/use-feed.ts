@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { FeedResponse } from '@/types/feed/feed-types'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { FeedResponse, FeedItem } from '@/types/feed/feed-types'
 
 
 const API_URL = 'http://localhost:4000/api/posts/'
@@ -30,4 +30,30 @@ export function useFeed() {
         staleTime: 1000 * 60, // 1 min cache
         retry: 1, // retry once on failure
     })
+}
+
+// Hook to invalidate feed cache
+export function useInvalidateFeed() {
+    const queryClient = useQueryClient()
+
+    return () => {
+        queryClient.invalidateQueries({ queryKey: ['feed'] })
+    }
+}
+
+// Hook for optimistic updates (optional - for even faster UI updates)
+export function useOptimisticFeedUpdate() {
+    const queryClient = useQueryClient()
+
+    return (newPost: FeedItem) => {
+        queryClient.setQueryData(['feed'], (oldData: FeedResponse | undefined) => {
+            if (!oldData) return oldData
+
+            // Add the new post to the beginning of the feed
+            return {
+                ...oldData,
+                items: [newPost, ...(oldData.items || [])]
+            }
+        })
+    }
 }

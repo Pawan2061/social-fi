@@ -180,7 +180,7 @@ export default function FeedPage() {
           onClose={() => setShowCreate(false)}
           onCreated={() => {
             setShowCreate(false);
-            refetch(); // Refetch the feed when a new post is created
+            // Feed will automatically refresh via query invalidation
           }}
         />
       )}

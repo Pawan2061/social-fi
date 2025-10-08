@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { X, Upload, Video, Lock, Globe, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useInvalidateFeed } from "@/hooks/use-feed";
 
 function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -138,6 +139,7 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
   const [mounted, setMounted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const invalidateFeed = useInvalidateFeed();
 
   const canSubmit = useMemo(() => {
     return caption.trim().length > 0 || selected.length > 0;
@@ -197,7 +199,10 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
         media: uploaded.length ? uploaded : undefined,
       });
 
-      // 3) Notify and close
+      // 3) Invalidate feed cache to refresh the feed
+      invalidateFeed();
+
+      // 4) Notify and close
       onCreated?.(post);
       onClose();
     } catch (e: unknown) {
