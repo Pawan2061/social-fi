@@ -36,8 +36,14 @@ export default function FeedPage() {
   // Fetch feed data using the hook
   const { data: feedData, isLoading, error, refetch } = useFeed();
 
-  // Transform API data to match PostCard props
-  const transformedPosts = feedData?.items?.map((item: FeedItem) => ({
+  // Transform API data to match PostCard props and filter out locked content
+  const transformedPosts = feedData?.items?.filter((item: FeedItem) => {
+    // If the post is premium and has locked media, don't show it in the feed
+    if (item.isPremium && item.media?.some(media => media.locked)) {
+      return false;
+    }
+    return true;
+  }).map((item: FeedItem) => ({
     id: item.id.toString(),
     author: {
       name: item.creator.name,
@@ -53,7 +59,7 @@ export default function FeedPage() {
     isPremium: item.isPremium,
     media: (() => {
       const supportedMedia = item.media?.filter(media =>
-        media.type === 'image' || media.type === 'video'
+        (media.type === 'image' || media.type === 'video') && !media.locked
       ) || [];
 
       return supportedMedia.length > 0 ? supportedMedia.map(media => ({
