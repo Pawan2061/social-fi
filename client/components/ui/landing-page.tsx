@@ -264,8 +264,9 @@ export default function CreatorInsuranceLanding() {
   const { connected } = useWallet();
   const { token, user } = useAuth();
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
+  const [userType, setUserType] = useState<"creator" | "fan">("fan");
 
-  const handleGetStarted = () => {
+  const handleGetStarted = (type: "creator" | "fan") => {
     if (!connected) {
       alert("Please connect your wallet first!");
       return;
@@ -279,6 +280,7 @@ export default function CreatorInsuranceLanding() {
     if (user?.onboarded) {
       window.location.href = "/feed";
     } else {
+      setUserType(type);
       setShowOnboardingModal(true);
     }
   };
@@ -296,12 +298,12 @@ export default function CreatorInsuranceLanding() {
         {
           label: "Start as Creator",
           variant: "primary" as const,
-          onClick: handleGetStarted,
+          onClick: () => handleGetStarted("creator"),
         },
         {
           label: "Join as Fan",
           variant: "secondary" as const,
-          onClick: handleGetStarted,
+          onClick: () => handleGetStarted("fan"),
         },
       ],
     },
@@ -357,6 +359,7 @@ export default function CreatorInsuranceLanding() {
       <OnboardingModal
         isOpen={showOnboardingModal}
         onClose={() => setShowOnboardingModal(false)}
+        userType={userType}
       />
     </>
   );
