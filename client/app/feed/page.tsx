@@ -7,7 +7,7 @@ import {
 import { useState } from "react";
 import CreatePostPopup from "@/components/feed/create-post-popup";
 import { Button } from "@/components/ui/button";
-import { useFeed } from "@/hooks/use-feed";
+import { useInfiniteFeed } from "@/hooks/use-feed";
 import { FeedItem } from "@/types/feed/feed-types";
 
 // Helper function to format relative time
@@ -33,9 +33,27 @@ export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
 
-  const { data: feedData, isLoading, error, refetch } = useFeed();
+  const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteFeed(10);
 
-  const transformedPosts = feedData?.items?.filter((item: FeedItem) => {
+  // Flatten and de-duplicate posts across pages by id to avoid duplicate React keys
+  //   I deduplicated items by id before rendering in page.tsx:
+  // Flatten pages → keep a Set of seen ids → render only unique posts.
+  // This prevents duplicate keys even if the server overlaps pages.
+  const allItems = (() => {
+    const flat = (data?.pages ?? []).flatMap(page => page.items ?? []);
+    const seen = new Set<string>();
+    const unique: FeedItem[] = [];
+    for (const item of flat) {
+      const key = String(item.id);
+      if (!seen.has(key)) {
+        seen.add(key);
+        unique.push(item);
+      }
+    }
+    return unique;
+  })();
+
+  const transformedPosts = allItems.filter((item: FeedItem) => {
     if (item.isPremium && item.media?.some(media => media.locked)) {
       return false;
     }
@@ -43,6 +61,7 @@ export default function FeedPage() {
   }).map((item: FeedItem) => ({
     id: item.id.toString(),
     author: {
+      id: item.creator.id.toString(),
       name: item.creator.name,
       username: item.creator.wallet.slice(0, 8) + "...",
       verified: item.creator.emailVerified,
@@ -133,7 +152,7 @@ export default function FeedPage() {
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto px-4 pb-4">
+      <div className="flex-1 overflow-y-auto px-4 pb-24">
         <div className="space-y-6">
           {filteredPosts.length > 0 ? (
             filteredPosts.map((post, index) => (
@@ -157,6 +176,19 @@ export default function FeedPage() {
                     : "No posts available at the moment."}
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Load More */}
+          {filteredPosts.length > 0 && (
+            <div className="flex justify-center pt-2">
+              <Button
+                onClick={() => fetchNextPage()}
+                disabled={!hasNextPage || isFetchingNextPage}
+                className="bg-white text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] hover:-translate-x-1 hover:-translate-y-1 font-extrabold"
+              >
+                {isFetchingNextPage ? 'Loading…' : hasNextPage ? 'Load more' : 'No more posts'}
+              </Button>
             </div>
           )}
         </div>

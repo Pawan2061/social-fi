@@ -47,12 +47,12 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
                     {/* Stats Cards */}
                     <div className="bg-blue-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform -rotate-1">
                         <h3 className="font-extrabold text-sm">Posts</h3>
-                        <p className="text-2xl font-black">{user.posts.length}</p>
+                        <p className="text-2xl font-black">{user.posts?.length ?? 0}</p>
                     </div>
 
                     <div className="bg-green-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000]">
                         <h3 className="font-extrabold text-sm">Passes Owned</h3>
-                        <p className="text-2xl font-black">{user.passes.length}</p>
+                        <p className="text-2xl font-black">{user.passes?.length ?? 0}</p>
                     </div>
 
                     {user.pass && (

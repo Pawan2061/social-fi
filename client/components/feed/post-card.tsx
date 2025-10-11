@@ -4,6 +4,7 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Heart,
@@ -31,6 +32,7 @@ import {
 interface PostCardProps {
     id: string;
     author: {
+        id: string;
         name: string;
         username: string;
         avatar?: string;
@@ -187,9 +189,11 @@ export function PostCard({
                         </Avatar>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
-                                <h3 className="font-black text-black truncate hover:underline text-lg tracking-tight">
-                                    {author.name}
-                                </h3>
+                                <Link href={`/profile/${author.id}`} className="hover:underline">
+                                    <h3 className="font-black text-black truncate text-lg tracking-tight">
+                                        {author.name}
+                                    </h3>
+                                </Link>
                                 {author.verified && (
                                     <div className="w-6 h-6 bg-green-400 border-2 border-black rotate-12 flex items-center justify-center shadow-[2px_2px_0px_0px_#000]">
                                         <svg className="w-3 h-3 text-black font-black" fill="currentColor" viewBox="0 0 20 20">
@@ -236,7 +240,7 @@ export function PostCard({
                                     >
                                         {mediaItem.type === 'image' ? (
                                             <Image
-                                            loading='lazy'
+                                                loading='lazy'
                                                 src={mediaItem.url}
                                                 alt={mediaItem.alt || 'Post media'}
                                                 width={600}
@@ -440,6 +444,7 @@ export function SamplePostCard() {
         <PostCard
             id="1"
             author={{
+                id: "user1",
                 name: "John Doe",
                 username: "johndoe",
                 avatar: "/api/placeholder/40/40",
