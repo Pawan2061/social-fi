@@ -136,6 +136,7 @@ export async function createPass(
   });
   if (!res.ok) {
     const error = await res.text();
+    console.log("Failed to create pass", res);
     throw new Error(error || "Failed to create pass");
   }
   return res.json();

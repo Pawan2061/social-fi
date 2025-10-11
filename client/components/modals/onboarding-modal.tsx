@@ -16,6 +16,7 @@ import {
   createCreatorPassCollection,
   testNetworkConnection,
   createCreatorPoolAddresses,
+  createCreatorPoolOnChain,
 } from "@/lib/nft-utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -135,7 +136,7 @@ export default function OnboardingModal({
       }
 
       console.log("🏦 Generating creator pool addresses...");
-      const { vaultAddress } = await createCreatorPoolAddresses({
+      const { vaultAddress } = await createCreatorPoolOnChain({
         publicKey,
         signTransaction: signTransaction as (
           transaction: unknown

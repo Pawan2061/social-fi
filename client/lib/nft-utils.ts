@@ -25,7 +25,7 @@ import * as anchor from "@coral-xyz/anchor";
 import idl from "../idl/contract.json";
 
 const PROGRAM_ID = new PublicKey(
-  "CWPpP9zRv85sp94JYMhsXiGjgKMsZpqedvSJcVrsDRWE"
+  "BqHTWrkNFvj9ZA24yFkcTiXdczrNuQpspknnt3tWabVF"
 );
 
 export function generateCreatorPoolVaultAddress(
@@ -88,7 +88,7 @@ export async function initializeFactory(
     signTransaction: (transaction: unknown) => Promise<unknown>;
   },
   defaultQuorum: number = 1000,
-  defaultVotingWindow: number = 7 * 24 * 60 * 60, // 7 days in seconds
+  defaultVotingWindow: number = 7 * 24 * 60 * 60,
   platformFeePercentage: number = 5 // 5%
 ): Promise<{
   factoryAddress: string;
@@ -114,7 +114,7 @@ export async function initializeFactory(
 
     try {
       const programAccount = await connection.getAccountInfo(
-        new PublicKey("CWPpP9zRv85sp94JYMhsXiGjgKMsZpqedvSJcVrsDRWE")
+        new PublicKey("BqHTWrkNFvj9ZA24yFkcTiXdczrNuQpspknnt3tWabVF")
       );
       if (!programAccount) {
         throw new Error("Program is not deployed to devnet");
@@ -252,7 +252,7 @@ export async function createCreatorPoolOnChain(
 
     try {
       const programAccount = await connection.getAccountInfo(
-        new PublicKey("CWPpP9zRv85sp94JYMhsXiGjgKMsZpqedvSJcVrsDRWE")
+        new PublicKey("BqHTWrkNFvj9ZA24yFkcTiXdczrNuQpspknnt3tWabVF")
       );
       if (!programAccount) {
         throw new Error("Program is not deployed to devnet");
@@ -274,7 +274,7 @@ export async function createCreatorPoolOnChain(
     const factoryAddress = generateFactoryAddress();
 
     const usdcMint = new PublicKey(
-      "So11111111111111111111111111111111111111112" // Wrapped SOL (WSOL) - always exists
+      "So11111111111111111111111111111111111111112"
     );
 
     const tokenProgram = new PublicKey(
@@ -290,26 +290,76 @@ export async function createCreatorPoolOnChain(
       usdcMint: usdcMint.toString(),
     });
 
-    try {
-      const factoryAccount = await connection.getAccountInfo(
-        new PublicKey(factoryAddress)
+    console.log(
+      "🔍 Checking if creator pool already exists:",
+      creatorPoolAddress
+    );
+    const existingCreatorPool = await connection.getAccountInfo(
+      new PublicKey(creatorPoolAddress)
+    );
+
+    if (existingCreatorPool) {
+      console.log(
+        "⚠️ Creator pool already exists! Returning existing addresses."
       );
-      if (!factoryAccount) {
-        console.log(
-          "🏭 Factory account does not exist. Initializing factory first..."
+      console.log("📊 Existing creator pool details:", {
+        address: creatorPoolAddress,
+        owner: existingCreatorPool.owner.toString(),
+        executable: existingCreatorPool.executable,
+        lamports: existingCreatorPool.lamports,
+        dataLength: existingCreatorPool.data.length,
+      });
+
+      return {
+        creatorPoolAddress,
+        vaultAddress,
+        transactionSignature: "existing-pool",
+      };
+    }
+
+    console.log("✅ Creator pool does not exist, proceeding with creation...");
+
+    console.log("🔍 Checking factory account:", factoryAddress);
+    const factoryAccount = await connection.getAccountInfo(
+      new PublicKey(factoryAddress)
+    );
+
+    if (!factoryAccount) {
+      console.log(
+        "🏭 Factory account does not exist. Initializing factory first..."
+      );
+      try {
+        const factoryResult = await initializeFactory(creatorWallet);
+        console.log("✅ Factory initialized successfully:", factoryResult);
+
+        const verifyFactory = await connection.getAccountInfo(
+          new PublicKey(factoryAddress)
         );
-        await initializeFactory(creatorWallet);
-        console.log("✅ Factory initialized successfully");
-      } else {
-        console.log("✅ Factory account found");
+        if (!verifyFactory) {
+          throw new Error(
+            "Factory initialization failed - account not found after creation"
+          );
+        }
+        console.log("✅ Factory account verified");
+      } catch (factoryError) {
+        console.error("❌ Factory initialization failed:", factoryError);
+        throw new Error(
+          `Factory initialization failed: ${
+            factoryError instanceof Error
+              ? factoryError.message
+              : "Unknown error"
+          }`
+        );
       }
-    } catch (error) {
-      console.error("❌ Factory account check/initialization failed:", error);
-      throw new Error(
-        `Factory setup failed: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
-      );
+    } else {
+      console.log("✅ Factory account found");
+      console.log("📊 Factory account details:", {
+        address: factoryAddress,
+        owner: factoryAccount.owner.toString(),
+        executable: factoryAccount.executable,
+        lamports: factoryAccount.lamports,
+        dataLength: factoryAccount.data.length,
+      });
     }
 
     const tx = await program.methods
@@ -450,22 +500,6 @@ export async function createCreatorPassCollection(
     });
 
     const umi = createUmiInstance();
-
-    // const publicKeyString =
-    //   typeof creatorWallet.publicKey === "string"
-    //     ? creatorWallet.publicKey
-    //     : creatorWallet.publicKey.toBase58();
-
-    // const walletAdapter = {
-    //   publicKey: UMIPublicKey(publicKeyString),
-    //   signTransaction: creatorWallet.signTransaction,
-    //   signAllTransactions: async (transactions: any[]) => {
-    //     return await Promise.all(
-    //       transactions.map((tx) => creatorWallet.signTransaction(tx))
-    //     );
-    //   },
-    // };
-
     umi.use(walletAdapterIdentity(creatorWallet as any));
     console.log("✅ Creator identity set");
 
@@ -489,32 +523,41 @@ export async function createCreatorPassCollection(
     console.log("🪙 Creating Creator Pass NFT collection on-chain...");
     const collectionMint = generateSigner(umi);
 
-    const createNftResult = await createNft(umi, {
-      mint: collectionMint,
-      name: collectionData.name,
-      symbol: collectionData.symbol || "PASS",
-      uri: metadataUri,
-      sellerFeeBasisPoints: percentAmount(0),
-      isCollection: true,
-    }).sendAndConfirm(umi);
+    try {
+      const createNftResult = await createNft(umi, {
+        mint: collectionMint,
+        name: collectionData.name,
+        symbol: collectionData.symbol || "PASS",
+        uri: metadataUri,
+        sellerFeeBasisPoints: percentAmount(0),
+        isCollection: true,
+      }).sendAndConfirm(umi);
 
-    console.log("✅ Creator Pass NFT collection created successfully!");
-    console.log("🪙 Collection mint address:", collectionMint.publicKey);
-    console.log("📋 Transaction signature:", createNftResult.signature);
+      console.log("✅ Creator Pass NFT collection created successfully!");
+      console.log("🪙 Collection mint address:", collectionMint.publicKey);
+      console.log("📋 Transaction signature:", createNftResult.signature);
 
-    const collectionMetadata = findMetadataPda(umi, {
-      mint: collectionMint.publicKey,
-    });
+      const collectionMetadata = findMetadataPda(umi, {
+        mint: collectionMint.publicKey,
+      });
 
-    const collectionMasterEdition = findMetadataPda(umi, {
-      mint: collectionMint.publicKey,
-    });
+      const collectionMasterEdition = findMetadataPda(umi, {
+        mint: collectionMint.publicKey,
+      });
 
-    return {
-      collectionMint: collectionMint.publicKey,
-      collectionMetadata: collectionMetadata[0],
-      collectionMasterEdition: collectionMasterEdition[0],
-    };
+      return {
+        collectionMint: collectionMint.publicKey,
+        collectionMetadata: collectionMetadata[0],
+        collectionMasterEdition: collectionMasterEdition[0],
+      };
+    } catch (nftError) {
+      console.error("❌ NFT creation transaction failed:", nftError);
+      throw new Error(
+        `NFT creation transaction failed: ${
+          nftError instanceof Error ? nftError.message : "Unknown error"
+        }`
+      );
+    }
   } catch (error) {
     console.error("❌ Error creating Creator Pass NFT collection:", error);
 
