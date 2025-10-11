@@ -5,9 +5,7 @@ export const GoalMetric = z.enum(["PASS_COUNT"]);
 export const WidgetStatus = z.enum(["ACTIVE", "COMPLETED", "EXPIRED"]);
 
 export const PollOptionSchema = z.object({
-  widgetId: z.number().optional(),
   text: z.string().min(1, "Option text is required"),
-  voteCount: z.number().default(0).optional(),
 });
 
 export const PollVoteSchema = z.object({
