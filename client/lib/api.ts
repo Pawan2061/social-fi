@@ -1,5 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
 
+
 export interface User {
   id: number;
   name: string | null;
@@ -9,7 +10,20 @@ export interface User {
   onboarded: boolean;
   createdAt: string;
   updatedAt: string;
+  pass: Pass | null;
 }
+
+interface Pass {
+  id: number;
+  creatorId: number;
+  title: string;
+  description: string;
+  price: number;
+  image: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 
 export async function requestNonce(
   address: string

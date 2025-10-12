@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import { useUserProfileById } from "@/hooks/use-user-profile-by-id";
 import UserProfileComponent from "@/components/profile/user-profile";
-import PassesComponent from "@/components/profile/passes-component";
 import { PostCard } from "@/components/feed/post-card";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
