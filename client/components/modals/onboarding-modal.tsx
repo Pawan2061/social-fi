@@ -100,7 +100,11 @@ export default function OnboardingModal({
     },
     onSuccess: (user) => {
       setIsUserOnboarded(true);
-      setOnboardedUser(user);
+      setOnboardedUser({
+        id: user.id,
+        name: user.name || "", // Add fallback
+        email: user.email || "",
+      });
       if (userType === "fan") {
         queryClient.invalidateQueries({ queryKey: ["user"] });
         onClose();

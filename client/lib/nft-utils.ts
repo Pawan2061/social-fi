@@ -101,6 +101,8 @@ export async function initializeFactory(
     const wallet = {
       publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
       signTransaction: creatorWallet.signTransaction,
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signAllTransactions: async (transactions: any[]) => {
         return await Promise.all(
           transactions.map((tx) => creatorWallet.signTransaction(tx))
@@ -108,8 +110,10 @@ export async function initializeFactory(
       },
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const provider = new AnchorProvider(connection, wallet as any, {});
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const program = new Program(idl as any, provider);
 
     try {
@@ -239,6 +243,8 @@ export async function createCreatorPoolOnChain(
     const wallet = {
       publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
       signTransaction: creatorWallet.signTransaction,
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       signAllTransactions: async (transactions: any[]) => {
         return await Promise.all(
           transactions.map((tx) => creatorWallet.signTransaction(tx))
@@ -246,8 +252,10 @@ export async function createCreatorPoolOnChain(
       },
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const provider = new AnchorProvider(connection, wallet as any, {});
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const program = new Program(idl as any, provider);
 
     try {
@@ -500,6 +508,8 @@ export async function createCreatorPassCollection(
     });
 
     const umi = createUmiInstance();
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     umi.use(walletAdapterIdentity(creatorWallet as any));
     console.log("✅ Creator identity set");
 
@@ -681,15 +691,20 @@ export async function verifyCollection(
 const mockUploader = {
   install(umi: Umi) {
     umi.uploader = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       upload: async (files: any[]) => {
         return files.map(
           (file, index) =>
             `https://mock-storage.com/${file.name}-${Date.now()}-${index}`
         );
       },
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       uploadJson: async (json: any) => {
         return `https://mock-storage.com/metadata-${Date.now()}.json`;
       },
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       getUploadPrice: async (files: any[]) => {
         return { basisPoints: BigInt(0), identifier: "SOL", decimals: 9 };
       },
