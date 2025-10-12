@@ -4,7 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Crown, Users } from 'lucide-react';
 
-export type PostFilter = 'all' | 'premium';
+export type PostFilter = 'all' | 'widgets';
 
 interface PostFilterToggleProps {
     activeFilter: PostFilter;
@@ -13,6 +13,7 @@ interface PostFilterToggleProps {
     showCounts?: boolean;
     allCount?: number;
     premiumCount?: number;
+    onHoverWidgets?: () => void;
 }
 
 export function PostFilterToggle({
@@ -21,7 +22,8 @@ export function PostFilterToggle({
     className = "",
     showCounts = false,
     allCount = 0,
-    premiumCount = 0
+    premiumCount = 0,
+    onHoverWidgets
 }: PostFilterToggleProps) {
 
     const filters = [
@@ -33,11 +35,11 @@ export function PostFilterToggle({
             description: 'See all posts from your network'
         },
         {
-            id: 'premium' as PostFilter,
-            label: 'Premium',
+            id: 'widgets' as PostFilter,
+            label: 'Widgets',
             icon: Crown,
             count: premiumCount,
-            description: 'Exclusive premium content'
+            description: 'Discover user-created widgets'
         }
     ];
 
@@ -52,7 +54,7 @@ export function PostFilterToggle({
 
                 {showCounts && (
                     <div className="text-xs font-bold text-gray-600">
-                        {activeFilter === 'all' ? `${allCount} posts` : `${premiumCount} premium posts`}
+                        {activeFilter === 'all' ? `${allCount} posts` : `${premiumCount} widgets`}
                     </div>
                 )}
             </div>
@@ -66,8 +68,11 @@ export function PostFilterToggle({
                         <Button
                             key={filter.id}
                             onClick={() => onFilterChange(filter.id)}
+                            onMouseEnter={() => {
+                                if (filter.id === 'widgets') onHoverWidgets?.();
+                            }}
                             className={`flex-1 flex items-center justify-center space-x-2 px-4 py-3 font-extrabold border-4 border-black shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000] transform hover:-translate-x-1 hover:-translate-y-1 transition-all ${isActive
-                                ? filter.id === 'premium'
+                                ? filter.id === 'widgets'
                                     ? 'bg-yellow-300 text-black'
                                     : 'bg-pink-300 text-black'
                                 : 'bg-white text-black hover:bg-gray-50'
@@ -80,7 +85,7 @@ export function PostFilterToggle({
                             {showCounts && filter.count > 0 && (
                                 <div className={`px-2 py-1 text-xs font-extrabold border-2 border-black shadow-[1px_1px_0_0_#000] transform rotate-12 ${isActive
                                     ? 'bg-white text-black'
-                                    : filter.id === 'premium'
+                                    : filter.id === 'widgets'
                                         ? 'bg-yellow-300 text-black'
                                         : 'bg-cyan-300 text-black'
                                     }`}>

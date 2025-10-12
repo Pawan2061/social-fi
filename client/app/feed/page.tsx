@@ -9,6 +9,9 @@ import CreatePostPopup from "@/components/feed/create-post-popup";
 import { Button } from "@/components/ui/button";
 import { useInfiniteFeed } from "@/hooks/use-feed";
 import { FeedItem } from "@/types/feed/feed-types";
+import WidgetFeed from "@/components/widgets/widget-feed";
+import { useQueryClient } from "@tanstack/react-query";
+import { fetchWidgets } from "@/hooks/use-fetch-widgets";
 
 // Helper function to format relative time
 function getRelativeTime(date: Date): string {
@@ -32,6 +35,7 @@ function getRelativeTime(date: Date): string {
 export default function FeedPage() {
   const [activeFilter, setActiveFilter] = useState<PostFilter>("all");
   const [showCreate, setShowCreate] = useState(false);
+  const queryClient = useQueryClient();
 
   const { data, isLoading, error, fetchNextPage, hasNextPage, isFetchingNextPage, refetch } = useInfiniteFeed(10);
 
@@ -91,15 +95,11 @@ export default function FeedPage() {
 
   const allPosts = transformedPosts;
 
-  // Filter posts based on active filter
-  const filteredPosts = allPosts.filter((post) => {
-    if (activeFilter === "premium") {
-      return post.isPremium;
-    }
-    return true;
-  });
+  // Filter posts based on active filter (widgets handled separately)
+  const filteredPosts = allPosts;
 
-  const premiumPostsCount = allPosts.filter((post) => post.isPremium).length;
+  // For now, widgets count is unknown (handled inside WidgetFeed). We'll pass 0 or omit.
+  const premiumPostsCount = 0;
   const allPostsCount = allPosts.length;
 
   // Show loading state
@@ -147,6 +147,9 @@ export default function FeedPage() {
           showCounts={true}
           allCount={allPostsCount}
           premiumCount={premiumPostsCount}
+          onHoverWidgets={() => {
+            queryClient.prefetchQuery({ queryKey: ["widgets"], queryFn: fetchWidgets });
+          }}
           className="transform rotate-1"
         />
       </div>
@@ -154,7 +157,9 @@ export default function FeedPage() {
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-4 pb-24">
         <div className="space-y-6">
-          {filteredPosts.length > 0 ? (
+          {activeFilter === "widgets" ? (
+            <WidgetFeed />
+          ) : filteredPosts.length > 0 ? (
             filteredPosts.map((post, index) => (
               <div
                 key={post.id}
@@ -168,19 +173,17 @@ export default function FeedPage() {
             <div className="text-center py-12">
               <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
                 <h3 className="font-extrabold text-xl mb-2">
-                  No {activeFilter === "premium" ? "Premium" : ""} Posts Found
+                  No Posts Found
                 </h3>
                 <p className="text-gray-600 font-bold">
-                  {activeFilter === "premium"
-                    ? "Subscribe to premium to access exclusive content!"
-                    : "No posts available at the moment."}
+                  No posts available at the moment.
                 </p>
               </div>
             </div>
           )}
 
           {/* Load More */}
-          {filteredPosts.length > 0 && (
+          {activeFilter !== "widgets" && filteredPosts.length > 0 && (
             <div className="flex justify-center pt-2">
               <Button
                 onClick={() => fetchNextPage()}

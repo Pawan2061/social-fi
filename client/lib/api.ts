@@ -135,3 +135,20 @@ export const storage = {
     localStorage.removeItem("authToken");
   },
 };
+
+// Posts API
+export async function deletePost(postId: number | string): Promise<void> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/posts/${postId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "Failed to delete post");
+  }
+}

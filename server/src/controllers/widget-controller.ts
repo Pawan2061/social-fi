@@ -55,10 +55,10 @@ export const createWidget = async (req: AuthRequest, res: Response) => {
         pollOptions:
           type === "POLL" && pollOptions?.length
             ? {
-                create: pollOptions.map((p) => ({
-                  text: p.text,
-                })),
-              }
+              create: pollOptions.map((p) => ({
+                text: p.text,
+              })),
+            }
             : undefined,
       },
       include: {
@@ -88,6 +88,13 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
       where: { userId },
       select: { creatorId: true },
     });
+
+    if (!ownerships.length)
+      return res
+        .status(200)
+        .json({ message: "You haven't bought any passes", widgets: [] });
+
+
 
     const creatorIds = ownerships.map((o) => o.creatorId);
     if (creatorIds.length === 0) return res.status(200).json([]);

@@ -5,6 +5,7 @@ import UserProfileComponent from "@/components/profile/user-profile";
 import PassesComponent from "@/components/profile/passes-component";
 import { PostCard } from "@/components/feed/post-card";
 import { Button } from "@/components/ui/button";
+import { useDeletePost } from "@/hooks/use-delete-post";
 
 // Helper function to format relative time
 function getRelativeTime(date: Date): string {
@@ -27,6 +28,7 @@ function getRelativeTime(date: Date): string {
 
 export default function ProfilePage() {
     const { data: userProfile, isLoading, error, refetch } = useUserProfile();
+    const deleteMutation = useDeletePost();
 
     // Show loading state
     if (isLoading) {
@@ -148,7 +150,11 @@ export default function ProfilePage() {
                                     className={`transform ${index % 2 === 0 ? "rotate-1" : "-rotate-1"
                                         } hover:rotate-0 transition-transform`}
                                 >
-                                    <PostCard {...transformedPost} />
+                                    <PostCard
+                                        {...transformedPost}
+                                        isOwner
+                                        onDelete={(id) => deleteMutation.mutate(id)}
+                                    />
                                 </div>
                             );
                         })}

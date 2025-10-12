@@ -11,7 +11,6 @@ import {
     MessageCircle,
     Repeat2,
     Share,
-    MoreHorizontal,
     Bookmark,
     Crown,
     ChevronLeft,
@@ -46,6 +45,8 @@ interface PostCardProps {
     image?: string; // Keep for backward compatibility
     media?: MediaItem[]; // New media array
     isPremium?: boolean;
+    isOwner?: boolean;
+    onDelete?: (id: string) => void;
 }
 
 export function PostCard({
@@ -58,7 +59,9 @@ export function PostCard({
     initialComments = 0,
     image,
     media = [],
-    isPremium = false
+    isPremium = false,
+    isOwner = false,
+    onDelete
 }: PostCardProps) {
     const [likes, setLikes] = useState(initialLikes);
     const [retweets, setRetweets] = useState(initialRetweets);
@@ -215,9 +218,24 @@ export function PostCard({
                             </div>
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="p-2 h-10 w-10 border-3 border-black bg-red-400 hover:bg-red-500 shadow-[3px_3px_0px_0px_#000] hover:shadow-[5px_5px_0px_0px_#000] transform hover:-translate-x-1 hover:-translate-y-1">
-                        <MoreHorizontal className="h-5 w-5 text-black font-black" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {isOwner && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-2 h-10 border-3 border-black bg-yellow-300 hover:bg-yellow-400 shadow-[3px_3px_0px_0px_#000] hover:shadow-[5px_5px_0px_0px_#000] transform hover:-translate-x-1 hover:-translate-y-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!onDelete) return;
+                                    const confirmed = window.confirm('Delete this post? This cannot be undone.');
+                                    if (confirmed) onDelete(id);
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        )}
+
+                    </div>
                 </div>
             </CardHeader>
 
