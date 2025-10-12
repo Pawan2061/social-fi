@@ -12,15 +12,17 @@ import {
   verifyCollectionV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import { createGenericFile } from "@metaplex-foundation/umi";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
-import bs58 from "bs58";
-
+import {
+  clusterApiUrl,
+  Connection,
+  PublicKey,
+  Transaction,
+  SystemProgram,
+} from "@solana/web3.js";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
 import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
-import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
-import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import idl from "../idl/contract.json";
 
@@ -79,6 +81,41 @@ export function generateFactoryAddress(): string {
   } catch (error) {
     console.error("❌ Error generating factory address:", error);
     throw new Error("Failed to generate factory address");
+  }
+}
+
+export async function getVaultBalance(vaultAddress: string): Promise<number> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const balance = await connection.getBalance(new PublicKey(vaultAddress));
+    const balanceInSOL = balance / 1e9;
+    console.log("🏦 Vault balance:", balanceInSOL, "SOL");
+    return balanceInSOL;
+  } catch (error) {
+    console.error("❌ Error getting vault balance:", error);
+    return 0;
+  }
+}
+
+export async function getVaultInfo(creatorPublicKey: string) {
+  try {
+    const vaultAddress = generateCreatorPoolVaultAddress(creatorPublicKey);
+    const balance = await getVaultBalance(vaultAddress);
+
+    return {
+      vaultAddress,
+      balance,
+      balanceFormatted: `${balance.toFixed(6)} SOL`,
+      balanceLamports: Math.floor(balance * 1e9),
+    };
+  } catch (error) {
+    console.error("❌ Error getting vault info:", error);
+    return {
+      vaultAddress: "",
+      balance: 0,
+      balanceFormatted: "0.000000 SOL",
+      balanceLamports: 0,
+    };
   }
 }
 
@@ -541,6 +578,10 @@ export async function createCreatorPassCollection(
         uri: metadataUri,
         sellerFeeBasisPoints: percentAmount(0),
         isCollection: true,
+        collection: {
+          key: collectionMint.publicKey,
+          verified: false,
+        },
       }).sendAndConfirm(umi);
 
       console.log("✅ Creator Pass NFT collection created successfully!");
@@ -688,6 +729,167 @@ export async function verifyCollection(
   }
 }
 
+export async function buyCreatorPass(
+  buyerWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  passData: {
+    tokenMint: string;
+    price: number; // in USDC
+    creatorPublicKey: string;
+    vaultAddress: string;
+  }
+): Promise<{
+  transactionSignature: string;
+  nftMint: string;
+}> {
+  try {
+    console.log("🛒 Starting Creator Pass purchase...");
+    console.log("📝 Pass data:", {
+      tokenMint: passData.tokenMint,
+      price: passData.price,
+      creator: passData.creatorPublicKey,
+      vault: passData.vaultAddress,
+    });
+
+    const connection = new Connection(clusterApiUrl("devnet"));
+
+    const programAccount = await connection.getAccountInfo(PROGRAM_ID);
+    if (!programAccount) {
+      throw new Error("Program is not deployed to devnet");
+    }
+    console.log("✅ Program found on devnet");
+
+    // Generate addresses for reference
+    const creatorPoolAddress = generateCreatorPoolAddress(
+      passData.creatorPublicKey
+    );
+
+    const usdcMint = new PublicKey(
+      "So11111111111111111111111111111111111111112"
+    );
+
+    const totalAmount = Math.floor(passData.price * 1e9);
+
+    console.log("💰 Purchase details:", {
+      totalAmount: totalAmount,
+      priceInUSDC: passData.price,
+      creatorPool: creatorPoolAddress,
+      vault: passData.vaultAddress,
+      usdcMint: usdcMint.toString(),
+    });
+
+    const umi = createUmiInstance();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    umi.use(walletAdapterIdentity(buyerWallet as any));
+
+    const nftMint = generateSigner(umi);
+    const collectionMint = UMIPublicKey(passData.tokenMint);
+
+    console.log("🪙 Creating individual NFT for buyer...");
+    await createNft(umi, {
+      mint: nftMint,
+      name: `Creator Pass #${Date.now()}`,
+      symbol: "PASS",
+      uri: "https://mock-storage.com/creator-pass-metadata.json",
+      sellerFeeBasisPoints: percentAmount(0),
+      collection: {
+        key: collectionMint,
+        verified: false,
+      },
+    }).sendAndConfirm(umi);
+
+    console.log("✅ NFT created for buyer:", nftMint.publicKey);
+
+    // Check vault balance before transfer
+    console.log("🔍 Checking vault balance before transfer...");
+    const vaultInfoBefore = await getVaultInfo(passData.creatorPublicKey);
+    console.log("📊 Vault before transfer:", vaultInfoBefore);
+
+    console.log("💰 Simulating revenue distribution...");
+
+    const totalAmountLamports = Math.floor(passData.price * 1e9);
+    const vaultAmount = Math.floor((totalAmountLamports * 70) / 100);
+    const creatorAmount = totalAmountLamports - vaultAmount;
+
+    console.log("📊 Revenue distribution:", {
+      totalAmount: totalAmountLamports,
+      vaultAmount: vaultAmount,
+      creatorAmount: creatorAmount,
+      vaultPercentage: 70,
+      creatorPercentage: 30,
+    });
+
+    const transaction = new Transaction();
+
+    const vaultTransferInstruction = SystemProgram.transfer({
+      fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
+      toPubkey: new PublicKey(passData.vaultAddress),
+      lamports: vaultAmount,
+    });
+    transaction.add(vaultTransferInstruction);
+
+    // Transfer 30% to Creator's personal wallet
+    const creatorTransferInstruction = SystemProgram.transfer({
+      fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
+      toPubkey: new PublicKey(passData.creatorPublicKey),
+      lamports: creatorAmount,
+    });
+    transaction.add(creatorTransferInstruction);
+
+    // Set recent blockhash (required for Solana transactions)
+    console.log("🔗 Setting recent blockhash...");
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = new PublicKey(buyerWallet.publicKey.toBase58());
+
+    // Sign and send the transaction using wallet adapter
+    console.log("🔐 Signing and sending transaction...");
+    const signedTransaction = (await buyerWallet.signTransaction(
+      transaction
+    )) as Transaction;
+    const signature = await connection.sendRawTransaction(
+      signedTransaction.serialize()
+    );
+    await connection.confirmTransaction(signature, "confirmed");
+
+    console.log("✅ Revenue distribution completed!");
+    console.log("📋 Transaction signature:", signature);
+
+    // Check vault balance after transfer
+    console.log("🔍 Checking vault balance after transfer...");
+    const vaultInfoAfter = await getVaultInfo(passData.creatorPublicKey);
+    console.log("📊 Vault after transfer:", vaultInfoAfter);
+
+    // Calculate the difference
+    const vaultIncrease = vaultInfoAfter.balance - vaultInfoBefore.balance;
+    console.log("📈 Vault increase:", vaultIncrease.toFixed(6), "SOL");
+    console.log("🎯 Expected increase:", (vaultAmount / 1e9).toFixed(6), "SOL");
+
+    console.log("💰 Distribution summary:", {
+      vaultAddress: passData.vaultAddress,
+      vaultAmount: vaultAmount / 1e9, // Convert back to SOL for display
+      creatorAmount: creatorAmount / 1e9,
+      vaultBalanceBefore: vaultInfoBefore.balanceFormatted,
+      vaultBalanceAfter: vaultInfoAfter.balanceFormatted,
+      actualVaultIncrease: vaultIncrease.toFixed(6) + " SOL",
+    });
+
+    return {
+      transactionSignature: signature,
+      nftMint: nftMint.publicKey,
+    };
+  } catch (error) {
+    console.error("❌ Error buying creator pass:", error);
+    throw new Error(
+      `Failed to buy creator pass: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
 const mockUploader = {
   install(umi: Umi) {
     umi.uploader = {
@@ -699,13 +901,11 @@ const mockUploader = {
         );
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      uploadJson: async (json: any) => {
+      uploadJson: async () => {
         return `https://mock-storage.com/metadata-${Date.now()}.json`;
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      getUploadPrice: async (files: any[]) => {
+      getUploadPrice: async () => {
         return { basisPoints: BigInt(0), identifier: "SOL", decimals: 9 };
       },
     };
