@@ -156,6 +156,7 @@ export default function OnboardingModal({
         description: collectionDescription.trim(),
         image: collectionImage,
         symbol: "PASS",
+        maxSupply: 100,
       };
 
       const collection = await createCreatorPassCollection(
