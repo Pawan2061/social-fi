@@ -121,6 +121,41 @@ export async function uploadProfilePicture(
   }
 }
 
+export interface Pass {
+  id: number;
+  creatorId: number;
+  tokenMint: string;
+  vault_address: string | null;
+  price: number;
+  createdAt: string;
+  creator: User;
+  owned?: boolean;
+}
+
+export async function createPass(
+  token: string,
+  data: {
+    tokenMint: string;
+    price: number;
+    vault_address?: string;
+  }
+): Promise<Pass> {
+  const res = await fetch(`${API_URL}/pass`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const error = await res.text();
+    console.log("Failed to create pass", res);
+    throw new Error(error || "Failed to create pass");
+  }
+  return res.json();
+}
+
 export const storage = {
   getToken: () => {
     if (typeof window === "undefined") return null;
