@@ -1,6 +1,6 @@
 export interface FeedResponse {
     items: FeedItem[];
-    nextCursor: string | null;
+    nextCursor: number | null;
 }
 
 export interface FeedItem {

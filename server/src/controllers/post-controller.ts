@@ -91,6 +91,11 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
     const ownedCreatorIds = ownerships.map((o) => o.creatorId);
 
     const posts = await prisma.post.findMany({
+      where: {
+        creatorId: {
+          not: userId,
+        },
+      },
       take: limit + 1,
       skip: cursor ? 1 : 0,
       cursor: cursor ? { id: cursor } : undefined,

@@ -12,6 +12,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "dib3gcifsty30.cloudfront.net",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.jsdelivr.net",
+
+      },
 
       {
         protocol: "https",
@@ -22,6 +27,10 @@ const nextConfig: NextConfig = {
         protocol: "http",
         hostname: "localhost",
       },
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      }
     ],
   },
 };

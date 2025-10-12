@@ -52,13 +52,18 @@ export const me = async (req: AuthRequest, res: Response) => {
     if (!req.user) return res.status(401).send("Unauthorized");
 
     const user = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: {
+        id: req.user.userId,
+      },
+      include: { pass: true },
+
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const userWithImage = {
       ...user,
+
       image: user.image ? resolveMediaUrl(user.image) : null,
     };
 

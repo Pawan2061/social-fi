@@ -4,13 +4,13 @@ import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
     Heart,
     MessageCircle,
     Repeat2,
     Share,
-    MoreHorizontal,
     Bookmark,
     Crown,
     ChevronLeft,
@@ -31,6 +31,7 @@ import {
 interface PostCardProps {
     id: string;
     author: {
+        id: string;
         name: string;
         username: string;
         avatar?: string;
@@ -44,6 +45,8 @@ interface PostCardProps {
     image?: string; // Keep for backward compatibility
     media?: MediaItem[]; // New media array
     isPremium?: boolean;
+    isOwner?: boolean;
+    onDelete?: (id: string) => void;
 }
 
 export function PostCard({
@@ -56,7 +59,9 @@ export function PostCard({
     initialComments = 0,
     image,
     media = [],
-    isPremium = false
+    isPremium = false,
+    isOwner = false,
+    onDelete
 }: PostCardProps) {
     const [likes, setLikes] = useState(initialLikes);
     const [retweets, setRetweets] = useState(initialRetweets);
@@ -187,9 +192,11 @@ export function PostCard({
                         </Avatar>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center space-x-2">
-                                <h3 className="font-black text-black truncate hover:underline text-lg tracking-tight">
-                                    {author.name}
-                                </h3>
+                                <Link href={`/profile/${author.id}`} className="hover:underline">
+                                    <h3 className="font-black text-black truncate text-lg tracking-tight">
+                                        {author.name}
+                                    </h3>
+                                </Link>
                                 {author.verified && (
                                     <div className="w-6 h-6 bg-green-400 border-2 border-black rotate-12 flex items-center justify-center shadow-[2px_2px_0px_0px_#000]">
                                         <svg className="w-3 h-3 text-black font-black" fill="currentColor" viewBox="0 0 20 20">
@@ -211,9 +218,24 @@ export function PostCard({
                             </div>
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" className="p-2 h-10 w-10 border-3 border-black bg-red-400 hover:bg-red-500 shadow-[3px_3px_0px_0px_#000] hover:shadow-[5px_5px_0px_0px_#000] transform hover:-translate-x-1 hover:-translate-y-1">
-                        <MoreHorizontal className="h-5 w-5 text-black font-black" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        {isOwner && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="p-2 h-10 border-3 border-black bg-yellow-300 hover:bg-yellow-400 shadow-[3px_3px_0px_0px_#000] hover:shadow-[5px_5px_0px_0px_#000] transform hover:-translate-x-1 hover:-translate-y-1"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (!onDelete) return;
+                                    const confirmed = window.confirm('Delete this post? This cannot be undone.');
+                                    if (confirmed) onDelete(id);
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        )}
+
+                    </div>
                 </div>
             </CardHeader>
 
@@ -236,7 +258,7 @@ export function PostCard({
                                     >
                                         {mediaItem.type === 'image' ? (
                                             <Image
-                                            loading='lazy'
+                                                loading='lazy'
                                                 src={mediaItem.url}
                                                 alt={mediaItem.alt || 'Post media'}
                                                 width={600}
@@ -440,6 +462,7 @@ export function SamplePostCard() {
         <PostCard
             id="1"
             author={{
+                id: "user1",
                 name: "John Doe",
                 username: "johndoe",
                 avatar: "/api/placeholder/40/40",

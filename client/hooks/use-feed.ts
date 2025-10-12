@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query'
 import { FeedResponse, FeedItem } from '@/types/feed/feed-types'
 
 
@@ -47,11 +47,39 @@ export function useOptimisticFeedUpdate() {
         queryClient.setQueryData(['feed'], (oldData: FeedResponse | undefined) => {
             if (!oldData) return oldData
 
-            // Add the new post to the beginning of the feed
             return {
                 ...oldData,
                 items: [newPost, ...(oldData.items || [])]
             }
         })
     }
+}
+
+// Infinite feed with cursor-based pagination
+export function useInfiniteFeed(limit: number = 10) {
+    return useInfiniteQuery<FeedResponse>({
+        queryKey: ['feed', 'infinite', limit],
+        initialPageParam: undefined as number | undefined,
+        getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+        queryFn: async ({ pageParam }) => {
+            const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+            if (!token) throw new Error('No authentication token found')
+
+            const url = new URL(API_URL)
+            if (pageParam) url.searchParams.set('cursor', String(pageParam))
+            if (limit) url.searchParams.set('limit', String(limit))
+
+            const res = await fetch(url.toString(), {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            })
+
+            if (!res.ok) throw new Error(`Failed to fetch feed: ${res.statusText}`)
+            return res.json()
+        },
+        staleTime: 60_000,
+        retry: 1,
+    })
 }

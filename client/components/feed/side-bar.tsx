@@ -45,20 +45,20 @@ export function Sidebar({ user, className }: SidebarProps) {
       icon: Home,
     },
     {
-      name: "Notifications",
-      href: "/notifications",
-      icon: Bell,
-      badge: 3,
-    },
-    {
       name: "Explore",
       href: "/explore",
       icon: Search,
+      badge: 3,
     },
     {
-      name: "Messages",
-      href: "/messages",
-      icon: MessageCircle,
+      name: "Settings",
+      href: "/settings",
+      icon: Settings,
+    },
+    {
+      name: "Profile",
+      href: "/profile",
+      icon: User,
       badge: 1,
     },
 
@@ -68,16 +68,7 @@ export function Sidebar({ user, className }: SidebarProps) {
       icon: Users,
     },
 
-    {
-      name: "Profile",
-      href: "/profile",
-      icon: User,
-    },
-    {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
+
   ];
 
   const isActive = (href: string) => {
@@ -95,7 +86,7 @@ export function Sidebar({ user, className }: SidebarProps) {
       <div className="mb-8">
         <Link href="/" className="block">
           <div className="bg-yellow-300 text-black px-4 py-3 border-4 border-black shadow-[6px_6px_0_0_#000] font-extrabold text-xl transform -rotate-1 hover:rotate-0 transition-transform">
-            <span className="inline-block transform rotate-1">SOCIAL</span>
+            <span className="inline-block transform rotate-1">SOCIAL FI</span>
           </div>
         </Link>
       </div>

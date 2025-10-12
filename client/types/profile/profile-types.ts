@@ -11,8 +11,9 @@ export interface UserProfile {
     updatedAt: string;
     pass?: UserPass;
     posts: UserPost[];
-    passes: UserPassOwnership[];
+    passes?: UserPassOwnership[];
     Widget: unknown[];
+    ownsPass?: boolean;
 }
 
 export interface UserPass {
