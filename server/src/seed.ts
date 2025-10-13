@@ -2,7 +2,9 @@ import { faker } from "@faker-js/faker";
 import { prisma } from "./lib/prisma";
 
 async function main() {
-  console.log("🌱 Seeding Users, Passes, Ownerships, Posts & Media...");
+  console.log(
+    "🌱 Seeding Users, Passes, Ownerships, Posts, Media & Widgets..."
+  );
 
   const users = await Promise.all(
     Array.from({ length: 25 }).map(() =>
@@ -101,7 +103,51 @@ async function main() {
     }
   }
 
-  console.log("🖼️ Added media for posts.");
+  console.log("⚙️ Creating Widgets for Premium Creators...");
+
+  for (const creator of premiumCreators) {
+    const widgetType = faker.helpers.arrayElement(["GOAL", "POLL"]);
+
+    if (widgetType === "GOAL") {
+      await prisma.widget.create({
+        data: {
+          creatorId: creator.id,
+          type: "GOAL",
+          title: faker.company.catchPhrase(),
+          description: faker.lorem.sentence(),
+          targetValue: faker.number.int({ min: 5, max: 100 }),
+          currentValue: faker.number.int({ min: 0, max: 50 }),
+          metric: "PASS_COUNT",
+          expiresAt: faker.date.soon({ days: 30 }),
+          status: "ACTIVE",
+        },
+      });
+    } else {
+      // 🗳️ Poll Widget
+      const poll = await prisma.widget.create({
+        data: {
+          creatorId: creator.id,
+          type: "POLL",
+          title: faker.lorem.words(4),
+          description: faker.lorem.sentence(),
+          expiresAt: faker.date.soon({ days: 7 }),
+          status: "ACTIVE",
+        },
+      });
+
+      const optionCount = faker.number.int({ min: 2, max: 4 });
+      for (let i = 0; i < optionCount; i++) {
+        await prisma.pollOption.create({
+          data: {
+            widgetId: poll.id,
+            text: faker.lorem.words(3),
+          },
+        });
+      }
+    }
+  }
+
+  console.log("📊 Widgets created for all premium creators.");
   console.log("✅ Seeding complete!");
 }
 
