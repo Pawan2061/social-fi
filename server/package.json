@@ -20,6 +20,7 @@
     "@aws-sdk/s3-request-presigner": "^3.899.0",
     "@faker-js/faker": "^10.0.0",
     "@prisma/client": "^6.17.0",
+    "@solana/web3.js": "^1.98.4",
     "@types/express": "^5.0.3",
     "better-auth": "^1.3.24",
     "bs58": "^6.0.0",

@@ -208,3 +208,271 @@ export async function deletePost(postId: number | string): Promise<void> {
     throw new Error(text || "Failed to delete post");
   }
 }
+
+// Claims API
+export interface Claim {
+  id: number;
+  creatorId: number;
+  reason: string;
+  amount: number;
+  status: "PENDING" | "APPROVED" | "REJECTED" | "PAID";
+  validTill: string;
+  createdAt: string;
+  updatedAt: string;
+  media: unknown[];
+  creator: User;
+  onchainClaimAddress?: string;
+  onchainTransactionSignature?: string;
+
+  votes?: { approve: boolean }[];
+}
+
+export async function createClaim(claimData: {
+  reason: string;
+  amount: number;
+  evidenceIpfsHash?: string;
+  validTill?: string;
+  media?: unknown[];
+  creatorPoolAddress?: string;
+  vaultAddress?: string;
+  creatorUsdcAccount?: string;
+}): Promise<Claim> {
+  const token = storage.getToken();
+
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/claim`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(claimData),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to create claim");
+  }
+
+  return res.json();
+}
+
+export async function getClaims(): Promise<Claim[]> {
+  const token = storage.getToken();
+  // if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/claim`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to get claims");
+  }
+
+  return res.json();
+}
+
+export async function getClaim(claimId: number): Promise<Claim> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/claim/${claimId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to get claim");
+  }
+
+  return res.json();
+}
+
+export async function voteOnClaim(
+  claimId: number,
+  voteData: {
+    choice: "Yes" | "No";
+    transactionSignature: string;
+    onchainClaimAddress?: string;
+    creatorPoolAddress?: string;
+    nftOwnershipAddress?: string;
+    creatorCollectionAddress?: string;
+  }
+): Promise<{ message: string }> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  // Convert choice to boolean for backend
+  const approve = voteData.choice === "Yes";
+
+  const res = await fetch(`${API_URL}/votes/${claimId}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      approve,
+      txSig: voteData.transactionSignature,
+    }),
+  });
+
+  if (!res.ok) {
+    console.log("Failed to vote on claim", res);
+    const error = await res.json();
+    throw new Error(error.error || error.message || "Failed to vote on claim");
+  }
+
+  return res.json();
+}
+
+export async function getVoteCounts(claimId: number): Promise<{
+  yesVotes: number;
+  noVotes: number;
+  userVote: { approve: boolean } | null;
+}> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/votes/${claimId}`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to get vote counts");
+  }
+
+  return res.json();
+}
+
+export async function finalizeClaim(
+  claimId: number,
+  finalizeData: {
+    transactionSignature: string;
+    onchainClaimAddress?: string;
+    creatorPoolAddress?: string;
+  }
+): Promise<{ message: string; status: string }> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(`${API_URL}/claims/${claimId}/finalize`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(finalizeData),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || "Failed to finalize claim");
+  }
+
+  return res.json();
+}
+
+export async function finalizeClaimWithDistribution(
+  claimId: number,
+  finalizeData: {
+    transactionSignature: string;
+    onchainClaimAddress?: string;
+    creatorPoolAddress?: string;
+    result: "approved" | "rejected";
+    distributedAmount: number;
+  }
+): Promise<{
+  message: string;
+  status: string;
+  result: "approved" | "rejected";
+  distributedAmount: number;
+  distributionResult?: {
+    success: boolean;
+    message: string;
+    distributedAmount: number;
+  };
+}> {
+  const token = storage.getToken();
+  if (!token) throw new Error("No authentication token found");
+
+  const res = await fetch(
+    `${API_URL}/claim/${claimId}/finalize-with-distribution`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(finalizeData),
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(
+      error.message || "Failed to finalize claim with distribution"
+    );
+  }
+
+  return res.json();
+}
+
+export async function payoutClaim(
+  claimId: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_URL}/claim/${claimId}/payout`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${storage.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to process claim payout");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error processing claim payout:", error);
+    throw error;
+  }
+}
+
+export async function refundClaim(
+  claimId: number
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetch(`${API_URL}/claims/${claimId}/refund`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${storage.getToken()}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to process claim refund");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error("Error processing claim refund:", error);
+    throw error;
+  }
+}
