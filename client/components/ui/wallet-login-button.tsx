@@ -2,12 +2,28 @@
 
 import { useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import bs58 from "bs58";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { requestNonce, verifySignature } from "@/lib/api";
 import Image from "next/image";
+import dynamic from "next/dynamic";
+
+// Dynamically import WalletMultiButton to prevent hydration issues
+const DynamicWalletMultiButton = dynamic(
+  () =>
+    import("@solana/wallet-adapter-react-ui").then((mod) => ({
+      default: mod.WalletMultiButton,
+    })),
+  {
+    ssr: false,
+    loading: () => (
+      <button className="wallet-adapter-button wallet-adapter-button-trigger">
+        <span>Loading...</span>
+      </button>
+    ),
+  }
+);
 
 export default function WalletAuthButton() {
   const router = useRouter();
@@ -120,7 +136,7 @@ export default function WalletAuthButton() {
         </div>
       )}
 
-      <WalletMultiButton />
+      <DynamicWalletMultiButton />
     </div>
   );
 }

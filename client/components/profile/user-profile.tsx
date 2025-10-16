@@ -7,6 +7,7 @@ import { Button } from "../ui/button";
 import { BuyPassButton } from "../ui/buy-pass-button";
 import { getVaultInfo } from "@/lib/nft-utils";
 import { useEffect, useState, useCallback } from "react";
+import ClaimsSection from "../claims/claims-section";
 
 interface UserProfileProps {
   user: UserProfile;
@@ -54,9 +55,7 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
               />
             ) : (
               <div className="w-15 h-15 bg-white border-3 border-black rounded-full flex items-center justify-center shadow-[3px_3px_0_0_#000]">
-                <span className="text-xl font-extrabold">
-                  {user.name.charAt(0).toUpperCase()}
-                </span>
+                <span className="text-xl font-extrabold">{user.name}</span>
               </div>
             )}
             {user.emailVerified && (
@@ -163,6 +162,17 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
               price={user.pass.price}
               creatorPublicKey={user.wallet}
               vaultAddress={user.pass.vault_address}
+            />
+          </div>
+        )}
+
+        {/* Claims Section - Only show if user has a pass */}
+        {user.pass && vaultInfo && (
+          <div className="mt-6">
+            <ClaimsSection
+              creatorWallet={user.wallet}
+              vaultBalance={vaultInfo.balance}
+              vaultAddress={vaultInfo.vaultAddress}
             />
           </div>
         )}

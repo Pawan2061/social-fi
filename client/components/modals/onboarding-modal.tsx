@@ -102,7 +102,7 @@ export default function OnboardingModal({
       setIsUserOnboarded(true);
       setOnboardedUser({
         id: user.id,
-        name: user.name || "", // Add fallback
+        name: user.name || "",
         email: user.email || "",
       });
       if (userType === "fan") {
@@ -140,12 +140,16 @@ export default function OnboardingModal({
       }
 
       console.log("🏦 Generating creator pool addresses...");
-      const { vaultAddress } = await createCreatorPoolOnChain({
-        publicKey,
-        signTransaction: signTransaction as (
-          transaction: unknown
-        ) => Promise<unknown>,
-      });
+      const { vaultAddress } = await createCreatorPoolOnChain(
+        {
+          publicKey,
+          signTransaction: signTransaction as (
+            transaction: unknown
+          ) => Promise<unknown>,
+        },
+        1,
+        5 * 60
+      );
       console.log(
         "✅ Creator pool addresses generated, vault address:",
         vaultAddress

@@ -3,16 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Home,
-  Bell,
-  Search,
-  MessageCircle,
-  User,
-  Settings,
-  Users,
-  Plus,
-} from "lucide-react";
+import { Home, Search, User, Settings, Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CreatePostPopup from "@/components/feed/create-post-popup";
@@ -67,8 +58,6 @@ export function Sidebar({ user, className }: SidebarProps) {
       href: "/communities",
       icon: Users,
     },
-
-
   ];
 
   const isActive = (href: string) => {
@@ -82,7 +71,6 @@ export function Sidebar({ user, className }: SidebarProps) {
     <div
       className={`w-94 h-screen sticky top-0 bg-white border-r-4 border-black p-6 overflow-y-auto ${className}`}
     >
-      {/* Logo/Brand */}
       <div className="mb-8">
         <Link href="/" className="block">
           <div className="bg-yellow-300 text-black px-4 py-3 border-4 border-black shadow-[6px_6px_0_0_#000] font-extrabold text-xl transform -rotate-1 hover:rotate-0 transition-transform">
@@ -91,7 +79,6 @@ export function Sidebar({ user, className }: SidebarProps) {
         </Link>
       </div>
 
-      {/* Navigation Items */}
       <nav className="space-y-2 mb-8">
         {navigationItems.map((item) => {
           const Icon = item.icon;
@@ -100,10 +87,11 @@ export function Sidebar({ user, className }: SidebarProps) {
           return (
             <Link key={item.name} href={item.href}>
               <div
-                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${active
-                  ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
-                  : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
-                  }`}
+                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${
+                  active
+                    ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
+                    : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="h-5 w-5" />
@@ -120,15 +108,16 @@ export function Sidebar({ user, className }: SidebarProps) {
         })}
       </nav>
 
-      {/* Create Post Button */}
       <div className="mb-8">
-        <Button onClick={() => setShowCreate(true)} className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold text-lg py-4 transform hover:-translate-x-1 hover:-translate-y-1 transition-all">
+        <Button
+          onClick={() => setShowCreate(true)}
+          className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold text-lg py-4 transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
+        >
           <Plus className="h-5 w-5 mr-2" />
           CREATE POST
         </Button>
       </div>
 
-      {/* User Profile Section */}
       {user && (
         <div className="mt-auto">
           <Link href="/profile">
