@@ -52,6 +52,15 @@ export const addVote = async (req: AuthRequest, res: Response) => {
     const { claimId } = req.params;
     const { approve, txSig, blockSlot } = req.body;
     const userId = req.user?.userId;
+
+    console.log("🗳️ Vote request received:", {
+      claimId,
+      userId,
+      body: req.body,
+      approve,
+      txSig,
+      blockSlot,
+    });
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
@@ -88,6 +97,7 @@ export const addVote = async (req: AuthRequest, res: Response) => {
     });
     res.status(200).json(vote);
   } catch (e: any) {
+    console.error("❌ Error in addVote:", e);
     res.status(500).json({ message: e.message });
   }
 };
