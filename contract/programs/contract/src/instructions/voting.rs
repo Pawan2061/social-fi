@@ -1,5 +1,6 @@
 use crate::events::VoteCast;
-use crate::state::{Claim, CreatorCollection, NftOwnership, VoteAccount, VoteChoice};
+use crate::state::{Claim, VoteAccount, VoteChoice};
+// use anchor_lang::init_if_needed;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -7,7 +8,7 @@ pub struct Vote<'info> {
     #[account(
         mut,
         has_one = creator_pool,
-        constraint = claim.status == crate::state::ClaimStatus::Voting @ ErrorCode::InvalidClaimStatus,
+        constraint = (claim.status == crate::state::ClaimStatus::Voting || claim.status == crate::state::ClaimStatus::Pending) @ ErrorCode::InvalidClaimStatus,
         constraint = Clock::get()?.unix_timestamp < claim.voting_ends_at @ ErrorCode::VotingEnded
     )]
     pub claim: Account<'info, Claim>,
@@ -16,24 +17,13 @@ pub struct Vote<'info> {
     pub creator_pool: Account<'info, crate::state::CreatorPool>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = fan,
         space = VoteAccount::LEN,
         seeds = [b"vote", claim.key().as_ref(), fan.key().as_ref()],
         bump
     )]
     pub vote_account: Account<'info, VoteAccount>,
-
-    #[account(
-        constraint = nft_ownership.owner == fan.key() @ ErrorCode::NotNftOwner,
-        constraint = nft_ownership.creator == claim.creator @ ErrorCode::InvalidNftCreator
-    )]
-    pub nft_ownership: Account<'info, NftOwnership>,
-
-    #[account(
-        constraint = creator_collection.creator == claim.creator @ ErrorCode::InvalidCreatorCollection
-    )]
-    pub creator_collection: Account<'info, CreatorCollection>,
 
     #[account(mut)]
     pub fan: Signer<'info>,
@@ -46,7 +36,7 @@ pub struct ChangeVote<'info> {
     #[account(
         mut,
         has_one = creator_pool,
-        constraint = claim.status == crate::state::ClaimStatus::Voting @ ErrorCode::InvalidClaimStatus,
+        constraint = (claim.status == crate::state::ClaimStatus::Voting || claim.status == crate::state::ClaimStatus::Pending) @ ErrorCode::InvalidClaimStatus,
         constraint = Clock::get()?.unix_timestamp < claim.voting_ends_at @ ErrorCode::VotingEnded
     )]
     pub claim: Account<'info, Claim>,
@@ -61,17 +51,6 @@ pub struct ChangeVote<'info> {
     )]
     pub vote_account: Account<'info, VoteAccount>,
 
-    #[account(
-        constraint = nft_ownership.owner == voter.key() @ ErrorCode::NotNftOwner,
-        constraint = nft_ownership.creator == claim.creator @ ErrorCode::InvalidNftCreator
-    )]
-    pub nft_ownership: Account<'info, NftOwnership>,
-
-    #[account(
-        constraint = creator_collection.creator == claim.creator @ ErrorCode::InvalidCreatorCollection
-    )]
-    pub creator_collection: Account<'info, CreatorCollection>,
-
     pub voter: Signer<'info>,
 }
 
@@ -81,12 +60,6 @@ pub enum ErrorCode {
     InvalidClaimStatus,
     #[msg("Voting period has ended")]
     VotingEnded,
-    #[msg("Fan does not own the NFT")]
-    NotNftOwner,
-    #[msg("NFT does not belong to the claim creator")]
-    InvalidNftCreator,
-    #[msg("Invalid creator collection")]
-    InvalidCreatorCollection,
     #[msg("Invalid vote account")]
     InvalidVoteAccount,
     #[msg("Math overflow")]

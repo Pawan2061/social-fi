@@ -6,10 +6,18 @@ import {
   getClaims,
   updateClaim,
   acceptClaim,
+  voteOnClaim,
+  finalizeClaim,
+  finalizeClaimWithDistribution,
+  payoutClaim,
+  refundClaim,
 } from "../controllers/claim-controller";
 import { validateData } from "../middleware/validation-middleware";
-import { createClaimSchema, acceptClaimSchema, updateClaimSchema } from "../zod/claim-schema";
-
+import {
+  createClaimSchema,
+  acceptClaimSchema,
+  updateClaimSchema,
+} from "../zod/claim-schema";
 
 const claimRouter = Router();
 
@@ -37,5 +45,19 @@ claimRouter.put(
   validateData(updateClaimSchema),
   updateClaim
 );
+
+claimRouter.post("/:claimId/vote", authenticate, voteOnClaim);
+
+claimRouter.post("/:claimId/finalize", authenticate, finalizeClaim);
+
+claimRouter.post(
+  "/:claimId/finalize-with-distribution",
+  authenticate,
+  finalizeClaimWithDistribution
+);
+
+claimRouter.post("/:claimId/payout", authenticate, payoutClaim);
+
+claimRouter.post("/:claimId/refund", authenticate, refundClaim);
 
 export default claimRouter;

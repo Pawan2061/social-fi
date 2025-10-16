@@ -52,8 +52,13 @@ pub mod contract {
         instructions::verify_fan_pass(ctx)
     }
 
-    pub fn file_claim(ctx: Context<FileClaim>, evidence_ipfs_hash: String) -> Result<()> {
-        instructions::file_claim(ctx, evidence_ipfs_hash)
+    pub fn file_claim(
+        ctx: Context<FileClaim>,
+        evidence_ipfs_hash: String,
+        claim_count: u64,
+        creator_pool_address: Pubkey,
+    ) -> Result<()> {
+        instructions::file_claim(ctx, evidence_ipfs_hash, claim_count, creator_pool_address)
     }
 
     pub fn cancel_claim(ctx: Context<CancelClaim>) -> Result<()> {
@@ -70,6 +75,12 @@ pub mod contract {
 
     pub fn refund_claim(ctx: Context<RefundClaim>) -> Result<()> {
         instructions::refund_claim(ctx)
+    }
+
+    pub fn finalize_claim_with_distribution(
+        ctx: Context<FinalizeClaimWithDistribution>,
+    ) -> Result<()> {
+        instructions::finalize_claim_with_distribution(ctx)
     }
 
     pub fn vote(ctx: Context<Vote>, choice: VoteChoice) -> Result<()> {
