@@ -95,7 +95,6 @@ export default function FeedPage() {
 
   const allPosts = transformedPosts;
 
-  // Filter posts based on active filter (widgets handled separately)
   const filteredPosts = allPosts;
 
   // For now, widgets count is unknown (handled inside WidgetFeed). We'll pass 0 or omit.

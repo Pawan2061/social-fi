@@ -178,7 +178,8 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
     setSelected((prev) => prev.filter((m) => m.id !== id));
   }
 
-  async function handleSubmit() {
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
       setSubmitting(true);
       setError(null);
@@ -211,7 +212,7 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
     } finally {
       setSubmitting(false);
     }
-  }
+  };
 
   if (!mounted) return null;
   return createPortal(
@@ -236,7 +237,7 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
         </CardHeader>
 
         <CardContent className="pt-4 bg-white">
-          <div className="flex flex-col gap-4">
+          <form onSubmit={onSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label htmlFor="caption">Caption</Label>
               <Textarea
@@ -328,7 +329,7 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
                 Cancel
               </Button>
               <Button
-                onClick={handleSubmit}
+                type="submit"
                 disabled={!canSubmit || submitting}
                 className="bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] hover:-translate-x-1 hover:-translate-y-1 font-extrabold"
               >
@@ -342,7 +343,7 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
                 )}
               </Button>
             </div>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </div>,

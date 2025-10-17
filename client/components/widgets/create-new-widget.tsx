@@ -102,6 +102,7 @@ export default function CreateNewWidget({
     const [description, setDescription] = useState("");
     const [metric, setMetric] = useState<"PASS_COUNT">("PASS_COUNT");
     const [targetValue, setTargetValue] = useState<string>("");
+    const [expiresAtLocal, setExpiresAtLocal] = useState<string>("");
     const [options, setOptions] = useState<Array<{ id: string; text: string }>>([
         { id: `${Date.now()}-1`, text: "" },
         { id: `${Date.now()}-2`, text: "" },
@@ -119,8 +120,9 @@ export default function CreateNewWidget({
             // targetValue optional per instructions, but accept empty or numeric
             if (targetValue && isNaN(Number(targetValue))) return false;
         }
+        if (expiresAtLocal && isNaN(new Date(expiresAtLocal).getTime())) return false;
         return true;
-    }, [title, type, options, targetValue]);
+    }, [title, type, options, targetValue, expiresAtLocal]);
 
     function addOption() {
         setOptions((prev) => [...prev, { id: `${Date.now()}-${prev.length + 1}`, text: "" }]);
@@ -142,6 +144,14 @@ export default function CreateNewWidget({
                 title: title.trim(),
                 description: description.trim() || null,
             };
+
+            // Expires At (optional)
+            if (expiresAtLocal) {
+                const date = new Date(expiresAtLocal);
+                payload.expiresAt = isNaN(date.getTime()) ? null : date.toISOString();
+            } else {
+                payload.expiresAt = null;
+            }
 
             if (type === "GOAL") {
                 payload.metric = metric;
@@ -174,6 +184,7 @@ export default function CreateNewWidget({
             setDescription("");
             setMetric("PASS_COUNT");
             setTargetValue("");
+            setExpiresAtLocal("");
             setOptions([
                 { id: `${Date.now()}-1`, text: "" },
                 { id: `${Date.now()}-2`, text: "" },
@@ -232,6 +243,16 @@ export default function CreateNewWidget({
                             placeholder="Add more context (optional)"
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <Label htmlFor="expiresAt">Expires At (optional)</Label>
+                        <Input
+                            id="expiresAt"
+                            type="datetime-local"
+                            value={expiresAtLocal}
+                            onChange={(e) => setExpiresAtLocal(e.target.value)}
                         />
                     </div>
 

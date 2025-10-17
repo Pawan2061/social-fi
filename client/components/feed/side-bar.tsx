@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react"; // added useEffect
+import { createPortal } from "react-dom"; // added
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, User, Settings, Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CreatePostPopup from "@/components/feed/create-post-popup";
+import CreateNewWidget from "@/components/widgets/create-new-widget";
 
 interface NavigationItem {
   name: string;
@@ -28,6 +30,12 @@ interface SidebarProps {
 export function Sidebar({ user, className }: SidebarProps) {
   const pathname = usePathname();
   const [showCreate, setShowCreate] = useState(false);
+  const [showCreateChoice, setShowCreateChoice] = useState(false);
+  const [showCreateWidget, setShowCreateWidget] = useState(false);
+
+  // ensure portals only render on client
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const navigationItems: NavigationItem[] = [
     {
@@ -87,11 +95,10 @@ export function Sidebar({ user, className }: SidebarProps) {
           return (
             <Link key={item.name} href={item.href}>
               <div
-                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${
-                  active
-                    ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
-                    : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
-                }`}
+                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${active
+                  ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
+                  : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
+                  }`}
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="h-5 w-5" />
@@ -110,12 +117,15 @@ export function Sidebar({ user, className }: SidebarProps) {
 
       <div className="mb-8">
         <Button
-          onClick={() => setShowCreate(true)}
+          onClick={() => setShowCreateChoice(true)}
           className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold text-lg py-4 transform hover:-translate-x-1 hover:-translate-y-1 transition-all"
         >
           <Plus className="h-5 w-5 mr-2" />
-          CREATE POST
+          CREATE NEW
         </Button>
+      </div>
+      <div className="mb-8">
+
       </div>
 
       {user && (
@@ -159,7 +169,72 @@ export function Sidebar({ user, className }: SidebarProps) {
           </Link>
         </div>
       )}
-      {showCreate && (
+
+      {/* Choice modal */}
+      {mounted && showCreateChoice &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/40"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setShowCreateChoice(false);
+            }}
+          >
+            <div
+              className="relative w-full max-w-sm bg-white border-4 border-black shadow-[12px_12px_0_0_#000] p-6 z-[2147483648]"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-black mb-4">What do you want to create?</h3>
+              <div className="space-y-3">
+                <Button
+                  onClick={() => {
+                    setShowCreateChoice(false);
+                    setShowCreate(true);
+                  }}
+                  className="w-full bg-yellow-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold"
+                >
+                  Create Post
+                </Button>
+                <Button
+                  onClick={() => {
+                    setShowCreateChoice(false);
+                    setShowCreateWidget(true);
+                  }}
+                  className="w-full bg-pink-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold"
+                >
+                  Create Widget
+                </Button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      }
+
+      {/* Create Widget modal wrapper */}
+      {mounted && showCreateWidget &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/40"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setShowCreateWidget(false);
+            }}
+          >
+            <div
+              className="relative w-full max-w-2xl z-[2147483648]"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <CreateNewWidget
+                onCancel={() => setShowCreateWidget(false)}
+                onCreated={() => setShowCreateWidget(false)}
+              />
+            </div>
+          </div>,
+          document.body
+        )
+      }
+
+      {/* Create Post popup */}
+      {mounted && showCreate && (
         <CreatePostPopup
           onClose={() => setShowCreate(false)}
           onCreated={() => setShowCreate(false)}
