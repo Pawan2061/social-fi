@@ -45,12 +45,6 @@
           "writable": true
         },
         {
-          "name": "nft_ownership"
-        },
-        {
-          "name": "creator_collection"
-        },
-        {
           "name": "voter",
           "signer": true,
           "relations": ["vote_account"]
@@ -285,13 +279,12 @@
                 "value": [99, 108, 97, 105, 109]
               },
               {
-                "kind": "account",
-                "path": "creator_pool"
+                "kind": "arg",
+                "path": "creator_pool_address"
               },
               {
-                "kind": "account",
-                "path": "creator_pool.claim_count",
-                "account": "CreatorPool"
+                "kind": "arg",
+                "path": "claim_count"
               }
             ]
           }
@@ -332,6 +325,14 @@
         {
           "name": "evidence_ipfs_hash",
           "type": "string"
+        },
+        {
+          "name": "claim_count",
+          "type": "u64"
+        },
+        {
+          "name": "creator_pool_address",
+          "type": "pubkey"
         }
       ]
     },
@@ -350,6 +351,45 @@
         },
         {
           "name": "factory"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "finalize_claim_with_distribution",
+      "discriminator": [162, 152, 173, 229, 120, 228, 210, 247],
+      "accounts": [
+        {
+          "name": "claim",
+          "writable": true
+        },
+        {
+          "name": "creator_pool",
+          "writable": true,
+          "relations": ["claim"]
+        },
+        {
+          "name": "creator_pool_vault",
+          "writable": true
+        },
+        {
+          "name": "creator_usdc_account",
+          "writable": true
+        },
+        {
+          "name": "creator",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "usdc_mint"
+        },
+        {
+          "name": "factory"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
       ],
       "args": []
@@ -544,12 +584,6 @@
           }
         },
         {
-          "name": "nft_ownership"
-        },
-        {
-          "name": "creator_collection"
-        },
-        {
           "name": "fan",
           "writable": true,
           "signer": true
@@ -714,26 +748,11 @@
     },
     {
       "code": 6002,
-      "name": "NotNftOwner",
-      "msg": "Fan does not own the NFT"
-    },
-    {
-      "code": 6003,
-      "name": "InvalidNftCreator",
-      "msg": "NFT does not belong to the claim creator"
-    },
-    {
-      "code": 6004,
-      "name": "InvalidCreatorCollection",
-      "msg": "Invalid creator collection"
-    },
-    {
-      "code": 6005,
       "name": "InvalidVoteAccount",
       "msg": "Invalid vote account"
     },
     {
-      "code": 6006,
+      "code": 6003,
       "name": "MathOverflow",
       "msg": "Math overflow"
     }

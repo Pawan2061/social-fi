@@ -1,3 +1,4 @@
+// claim-section245
 import {
   generateSigner,
   keypairIdentity,
@@ -12,15 +13,22 @@ import {
   verifyCollectionV1,
 } from "@metaplex-foundation/mpl-token-metadata";
 import { createGenericFile } from "@metaplex-foundation/umi";
-import { clusterApiUrl, Connection, PublicKey } from "@solana/web3.js";
-import bs58 from "bs58";
-
+import {
+  clusterApiUrl,
+  Connection,
+  PublicKey,
+  Transaction,
+  SystemProgram,
+} from "@solana/web3.js";
+import {
+  getAssociatedTokenAddress,
+  createAssociatedTokenAccountInstruction,
+  getAccount,
+} from "@solana/spl-token";
 import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { walletAdapterIdentity } from "@metaplex-foundation/umi-signer-wallet-adapters";
 import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
-import { irysUploader } from "@metaplex-foundation/umi-uploader-irys";
-import { AnchorProvider, Program, Wallet } from "@coral-xyz/anchor";
-import { SystemProgram, SYSVAR_RENT_PUBKEY } from "@solana/web3.js";
+import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import idl from "../idl/contract.json";
 
@@ -28,6 +36,105 @@ const PROGRAM_ID = new PublicKey(
   "BqHTWrkNFvj9ZA24yFkcTiXdczrNuQpspknnt3tWabVF"
 );
 
+export async function getOrCreateTokenAccount(
+  connection: Connection,
+  payer: PublicKey,
+  mint: PublicKey,
+  signTransaction: (transaction: Transaction) => Promise<Transaction>
+): Promise<PublicKey> {
+  try {
+    const tokenAccount = await getAssociatedTokenAddress(mint, payer);
+
+    const existingAccount = await findTokenAccountWithRetries(
+      connection,
+      tokenAccount
+    );
+    if (existingAccount) {
+      return tokenAccount;
+    }
+
+    console.log("🔧 Creating new token account:", tokenAccount.toString());
+
+    const transaction = new Transaction().add(
+      createAssociatedTokenAccountInstruction(payer, tokenAccount, payer, mint)
+    );
+
+    const { blockhash, lastValidBlockHeight } =
+      await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = payer;
+
+    const signedTransaction = await signTransaction(transaction);
+    const signature = await connection.sendRawTransaction(
+      signedTransaction.serialize()
+    );
+
+    const confirmation = await connection.confirmTransaction(
+      {
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      },
+      "confirmed"
+    );
+
+    if (confirmation.value.err) {
+      throw new Error(`Transaction failed: ${confirmation.value.err}`);
+    }
+
+    const verifiedAccount = await findTokenAccountWithRetries(
+      connection,
+      tokenAccount
+    );
+    if (!verifiedAccount) {
+      throw new Error(
+        "Token account creation failed - account not found after creation"
+      );
+    }
+
+    console.log(
+      "✅ Token account created and verified:",
+      tokenAccount.toString()
+    );
+    return tokenAccount;
+  } catch (error) {
+    console.error("❌ Error in getOrCreateTokenAccount:", error);
+    throw new Error(
+      `Failed to get/create token account: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+async function findTokenAccountWithRetries(
+  connection: Connection,
+  tokenAccount: PublicKey,
+  maxRetries: number = 15,
+  delayMs: number = 2000
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+): Promise<any | null> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const account = await getAccount(connection, tokenAccount);
+      console.log("🔍 Account details:", {
+        address: tokenAccount.toString(),
+        mint: account.mint.toString(),
+        owner: account.owner.toString(),
+        amount: account.amount.toString(),
+      });
+      return account;
+    } catch (error) {
+      if (attempt < maxRetries) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      } else {
+        console.error("❌ Error finding token account:", error);
+        return null;
+      }
+    }
+  }
+  return null;
+}
 export function generateCreatorPoolVaultAddress(
   creatorPublicKey: string
 ): string {
@@ -39,10 +146,6 @@ export function generateCreatorPoolVaultAddress(
       PROGRAM_ID
     );
 
-    console.log(
-      "🏦 Generated creator pool vault address:",
-      vaultAddress.toString()
-    );
     return vaultAddress.toString();
   } catch (error) {
     console.error("❌ Error generating vault address:", error);
@@ -59,11 +162,139 @@ export function generateCreatorPoolAddress(creatorPublicKey: string): string {
       PROGRAM_ID
     );
 
-    console.log("🏦 Generated creator pool address:", poolAddress.toString());
     return poolAddress.toString();
   } catch (error) {
     console.error("❌ Error generating pool address:", error);
     throw new Error("Failed to generate creator pool address");
+  }
+}
+
+export function generateClaimAddress(
+  creatorPoolAddress: string,
+  claimCount: number
+): string {
+  try {
+    if (!creatorPoolAddress) {
+      throw new Error("creatorPoolAddress is required");
+    }
+
+    if (typeof claimCount !== "number" || isNaN(claimCount)) {
+      throw new Error("claimCount must be a valid number");
+    }
+
+    const poolKey = new PublicKey(creatorPoolAddress);
+
+    const claimCountBuffer = Buffer.alloc(8);
+    claimCountBuffer.writeUInt32LE(claimCount, 0);
+
+    const [claimAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("claim"), poolKey.toBuffer(), claimCountBuffer],
+      PROGRAM_ID
+    );
+
+    return claimAddress.toString();
+  } catch (error) {
+    console.error("❌ Error generating claim address:", error);
+    console.error("❌ Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      creatorPoolAddress,
+      claimCount,
+      creatorPoolAddressType: typeof creatorPoolAddress,
+      claimCountType: typeof claimCount,
+    });
+    throw new Error(
+      `Failed to generate claim address: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export function generateCreatorCollectionMint(creatorAddress: string): string {
+  try {
+    const creatorKey = new PublicKey(creatorAddress);
+
+    const [collectionMint] = PublicKey.findProgramAddressSync(
+      [Buffer.from("creator_collection"), creatorKey.toBuffer()],
+      PROGRAM_ID
+    );
+
+    return collectionMint.toString();
+  } catch (error) {
+    console.error("❌ Error generating creator collection mint:", error);
+    throw new Error(
+      `Failed to generate creator collection mint: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export function generateNftOwnershipAddress(
+  userAddress: string,
+  creatorAddress: string
+): string {
+  try {
+    const userKey = new PublicKey(userAddress);
+    const creatorKey = new PublicKey(creatorAddress);
+    const [nftOwnershipAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("nft_ownership"), userKey.toBuffer(), creatorKey.toBuffer()],
+      PROGRAM_ID
+    );
+    return nftOwnershipAddress.toString();
+  } catch (error) {
+    throw new Error(
+      `Failed to generate NFT ownership address: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function getCreatorPoolData(creatorPoolAddress: string): Promise<{
+  claimCount: number;
+  votingQuorum: number;
+  votingWindow: number;
+}> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const creatorPoolPublicKey = new PublicKey(creatorPoolAddress);
+
+    const accountInfo = await connection.getAccountInfo(creatorPoolPublicKey);
+    if (!accountInfo) {
+      throw new Error("Creator pool account not found");
+    }
+
+    const dummyWallet = {
+      publicKey: new PublicKey("11111111111111111111111111111111"),
+      signTransaction: async () => {
+        throw new Error("Not implemented");
+      },
+      signAllTransactions: async () => {
+        throw new Error("Not implemented");
+      },
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, dummyWallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+    const creatorPoolData = program.coder.accounts.decode(
+      "CreatorPool",
+      accountInfo.data
+    );
+
+    return {
+      claimCount: creatorPoolData.claimCount.toNumber(),
+      votingQuorum: creatorPoolData.votingQuorum.toNumber(),
+      votingWindow: creatorPoolData.votingWindow.toNumber(),
+    };
+  } catch (error) {
+    console.error("❌ Error getting creator pool data:", error);
+    throw new Error(
+      `Failed to get creator pool data: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
   }
 }
 
@@ -74,11 +305,44 @@ export function generateFactoryAddress(): string {
       PROGRAM_ID
     );
 
-    console.log("🏭 Generated factory address:", factoryAddress.toString());
     return factoryAddress.toString();
   } catch (error) {
     console.error("❌ Error generating factory address:", error);
     throw new Error("Failed to generate factory address");
+  }
+}
+
+export async function getVaultBalance(vaultAddress: string): Promise<number> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const balance = await connection.getBalance(new PublicKey(vaultAddress));
+    const balanceInSOL = balance / 1e9;
+    return balanceInSOL;
+  } catch (error) {
+    console.error("❌ Error getting vault balance:", error);
+    return 0;
+  }
+}
+
+export async function getVaultInfo(creatorPublicKey: string) {
+  try {
+    const vaultAddress = generateCreatorPoolVaultAddress(creatorPublicKey);
+    const balance = await getVaultBalance(vaultAddress);
+
+    return {
+      vaultAddress,
+      balance,
+      balanceFormatted: `${balance.toFixed(6)} SOL`,
+      balanceLamports: Math.floor(balance * 1e9),
+    };
+  } catch (error) {
+    console.error("❌ Error getting vault info:", error);
+    return {
+      vaultAddress: "",
+      balance: 0,
+      balanceFormatted: "0.000000 SOL",
+      balanceLamports: 0,
+    };
   }
 }
 
@@ -87,16 +351,14 @@ export async function initializeFactory(
     publicKey: { toBase58(): string };
     signTransaction: (transaction: unknown) => Promise<unknown>;
   },
-  defaultQuorum: number = 1000,
-  defaultVotingWindow: number = 7 * 24 * 60 * 60,
-  platformFeePercentage: number = 5 // 5%
+  defaultQuorum: number = 1,
+  defaultVotingWindow: number = 5 * 60,
+  platformFeePercentage: number = 5
 ): Promise<{
   factoryAddress: string;
   transactionSignature: string;
 }> {
   try {
-    console.log("🏭 Initializing factory...");
-
     const connection = new Connection(clusterApiUrl("devnet"));
     const wallet = {
       publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
@@ -134,10 +396,8 @@ export async function initializeFactory(
     const factoryAddress = generateFactoryAddress();
 
     const usdcMint = new PublicKey(
-      "So11111111111111111111111111111111111111112" // Wrapped SOL (WSOL) - always exists
+      "So11111111111111111111111111111111111111112"
     );
-
-    console.log("🔧 Using WSOL as test token for development");
 
     console.log("📋 Factory initialization:", {
       factory: factoryAddress,
@@ -160,10 +420,6 @@ export async function initializeFactory(
         systemProgram: SystemProgram.programId,
       })
       .rpc();
-
-    console.log("✅ Factory initialized successfully!");
-    console.log("📋 Transaction signature:", tx);
-    console.log("🏭 Factory address:", factoryAddress);
 
     return {
       factoryAddress,
@@ -188,25 +444,11 @@ export async function createCreatorPoolAddresses(creatorWallet: {
   transactionSignature: string;
 }> {
   try {
-    console.log("🏦 Generating creator pool addresses...");
-
     const creatorPoolAddress = generateCreatorPoolAddress(
       creatorWallet.publicKey.toBase58()
     );
     const vaultAddress = generateCreatorPoolVaultAddress(
       creatorWallet.publicKey.toBase58()
-    );
-
-    console.log("📋 Generated addresses:", {
-      creatorPool: creatorPoolAddress,
-      vault: vaultAddress,
-    });
-
-    console.log(
-      "⚠️  Note: This is a development workaround - addresses are generated but not deployed on-chain"
-    );
-    console.log(
-      "🔧 The actual creator pool creation will be implemented once the program ID mismatch is resolved"
     );
 
     return {
@@ -230,15 +472,13 @@ export async function createCreatorPoolOnChain(
     signTransaction: (transaction: unknown) => Promise<unknown>;
   },
   votingQuorum: number = 0,
-  votingWindow: number = 0
+  votingWindow: number = 5 * 60
 ): Promise<{
   creatorPoolAddress: string;
   vaultAddress: string;
   transactionSignature: string;
 }> {
   try {
-    console.log("🏦 Creating creator pool on-chain...");
-
     const connection = new Connection(clusterApiUrl("devnet"));
     const wallet = {
       publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
@@ -289,8 +529,6 @@ export async function createCreatorPoolOnChain(
       "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
     );
 
-    console.log("🔧 Using WSOL as test token for development");
-
     console.log("📋 Account addresses:", {
       creatorPool: creatorPoolAddress,
       vault: vaultAddress,
@@ -298,47 +536,13 @@ export async function createCreatorPoolOnChain(
       usdcMint: usdcMint.toString(),
     });
 
-    console.log(
-      "🔍 Checking if creator pool already exists:",
-      creatorPoolAddress
-    );
-    const existingCreatorPool = await connection.getAccountInfo(
-      new PublicKey(creatorPoolAddress)
-    );
-
-    if (existingCreatorPool) {
-      console.log(
-        "⚠️ Creator pool already exists! Returning existing addresses."
-      );
-      console.log("📊 Existing creator pool details:", {
-        address: creatorPoolAddress,
-        owner: existingCreatorPool.owner.toString(),
-        executable: existingCreatorPool.executable,
-        lamports: existingCreatorPool.lamports,
-        dataLength: existingCreatorPool.data.length,
-      });
-
-      return {
-        creatorPoolAddress,
-        vaultAddress,
-        transactionSignature: "existing-pool",
-      };
-    }
-
-    console.log("✅ Creator pool does not exist, proceeding with creation...");
-
-    console.log("🔍 Checking factory account:", factoryAddress);
     const factoryAccount = await connection.getAccountInfo(
       new PublicKey(factoryAddress)
     );
 
     if (!factoryAccount) {
-      console.log(
-        "🏭 Factory account does not exist. Initializing factory first..."
-      );
       try {
-        const factoryResult = await initializeFactory(creatorWallet);
-        console.log("✅ Factory initialized successfully:", factoryResult);
+        await initializeFactory(creatorWallet, 1, 5 * 60, 5);
 
         const verifyFactory = await connection.getAccountInfo(
           new PublicKey(factoryAddress)
@@ -348,7 +552,6 @@ export async function createCreatorPoolOnChain(
             "Factory initialization failed - account not found after creation"
           );
         }
-        console.log("✅ Factory account verified");
       } catch (factoryError) {
         console.error("❌ Factory initialization failed:", factoryError);
         throw new Error(
@@ -359,40 +562,54 @@ export async function createCreatorPoolOnChain(
           }`
         );
       }
-    } else {
-      console.log("✅ Factory account found");
-      console.log("📊 Factory account details:", {
-        address: factoryAddress,
-        owner: factoryAccount.owner.toString(),
-        executable: factoryAccount.executable,
-        lamports: factoryAccount.lamports,
-        dataLength: factoryAccount.data.length,
-      });
     }
+    try {
+      const tx = await program.methods
+        .createPool(new anchor.BN(votingQuorum), new anchor.BN(votingWindow))
+        .accounts({
+          creatorPool: new PublicKey(creatorPoolAddress),
+          creator: wallet.publicKey,
+          usdcMint: usdcMint,
+          usdcVault: new PublicKey(vaultAddress),
+          factory: new PublicKey(factoryAddress),
+          systemProgram: SystemProgram.programId,
+          tokenProgram: tokenProgram,
+        })
+        .rpc();
 
-    const tx = await program.methods
-      .createPool(new anchor.BN(votingQuorum), new anchor.BN(votingWindow))
-      .accounts({
-        creatorPool: new PublicKey(creatorPoolAddress),
-        creator: wallet.publicKey,
-        usdcMint: usdcMint,
-        usdcVault: new PublicKey(vaultAddress),
-        factory: new PublicKey(factoryAddress),
-        systemProgram: SystemProgram.programId,
-        tokenProgram: tokenProgram,
-      })
-      .rpc();
+      return {
+        creatorPoolAddress,
+        vaultAddress,
+        transactionSignature: tx,
+      };
+    } catch (createError) {
+      const existingAccount = await connection.getAccountInfo(
+        new PublicKey(creatorPoolAddress)
+      );
+      if (existingAccount) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const program = new Program(idl as any, provider);
+          await program.coder.accounts.decode(
+            "CreatorPool",
+            existingAccount.data
+          );
 
-    console.log("✅ Creator pool created successfully!");
-    console.log("📋 Transaction signature:", tx);
-    console.log("🏦 Creator pool address:", creatorPoolAddress);
-    console.log("💰 Vault address:", vaultAddress);
-
-    return {
-      creatorPoolAddress,
-      vaultAddress,
-      transactionSignature: tx,
-    };
+          return {
+            creatorPoolAddress,
+            vaultAddress,
+            transactionSignature: "existing-valid-pool",
+          };
+        } catch (decodeError) {
+          throw new Error(
+            "Creator pool account exists but is corrupted. Please contact support or try with a different wallet. " +
+              decodeError
+          );
+        }
+      } else {
+        throw createError;
+      }
+    }
   } catch (error) {
     console.error("❌ Error creating creator pool:", error);
     throw new Error(
@@ -430,14 +647,9 @@ export async function testNetworkConnection(rpcUrl?: string): Promise<boolean> {
 
   for (const endpoint of rpcEndpoints) {
     try {
-      console.log("🔍 Testing network connection to:", endpoint);
-
       const connection = new Connection(endpoint, "confirmed");
-      const version = await connection.getVersion();
+      await connection.getVersion();
 
-      console.log("✅ Network connection successful!");
-      console.log("📊 Solana version:", version);
-      console.log("🌐 Working RPC endpoint:", endpoint);
       return true;
     } catch (error) {
       console.warn(`❌ Failed to connect to ${endpoint}:`, error);
@@ -451,10 +663,9 @@ export async function testNetworkConnection(rpcUrl?: string): Promise<boolean> {
 
 export function createUmiInstance(rpcUrl?: string): Umi {
   const rpcEndpoint = rpcUrl || clusterApiUrl("devnet");
-  console.log("🔗 Connecting to Solana RPC:", rpcEndpoint);
 
   const umi = createUmi(rpcEndpoint).use(mplTokenMetadata()).use(mockUploader);
-  console.log("✅ Umi instance created successfully");
+
   return umi;
 }
 
@@ -511,13 +722,9 @@ export async function createCreatorPassCollection(
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     umi.use(walletAdapterIdentity(creatorWallet as any));
-    console.log("✅ Creator identity set");
 
-    console.log("📤 Uploading collection image...");
     const imageUri = await uploadImage(umi, collectionData.image);
-    console.log("✅ Collection image uploaded:", imageUri);
 
-    console.log("📤 Uploading collection metadata...");
     const metadataUri = await uploadMetadata(umi, {
       name: collectionData.name,
       description: collectionData.description,
@@ -528,9 +735,7 @@ export async function createCreatorPassCollection(
         { trait_type: "Collection", value: collectionData.name },
       ],
     });
-    console.log("✅ Collection metadata uploaded:", metadataUri);
 
-    console.log("🪙 Creating Creator Pass NFT collection on-chain...");
     const collectionMint = generateSigner(umi);
 
     try {
@@ -541,11 +746,11 @@ export async function createCreatorPassCollection(
         uri: metadataUri,
         sellerFeeBasisPoints: percentAmount(0),
         isCollection: true,
+        collection: {
+          key: collectionMint.publicKey,
+          verified: false,
+        },
       }).sendAndConfirm(umi);
-
-      console.log("✅ Creator Pass NFT collection created successfully!");
-      console.log("🪙 Collection mint address:", collectionMint.publicKey);
-      console.log("📋 Transaction signature:", createNftResult.signature);
 
       const collectionMetadata = findMetadataPda(umi, {
         mint: collectionMint.publicKey,
@@ -608,7 +813,6 @@ export async function createNftInCollection(
     umi.use(keypairIdentity(creatorKeypair));
 
     const imageUri = await uploadImage(umi, nftData.image);
-    console.log("✅ NFT image uploaded:", imageUri);
 
     const metadataUri = await uploadMetadata(umi, {
       name: nftData.name,
@@ -616,7 +820,6 @@ export async function createNftInCollection(
       image: imageUri,
       symbol: nftData.symbol || "PASS",
     });
-    console.log("✅ NFT metadata uploaded:", metadataUri);
 
     const nftMint = generateSigner(umi);
     await createNft(umi, {
@@ -626,8 +829,6 @@ export async function createNftInCollection(
       uri: metadataUri,
       sellerFeeBasisPoints: percentAmount(0),
     }).sendAndConfirm(umi);
-
-    console.log("✅ Individual NFT created:", nftMint.publicKey);
 
     await verifyCollection(
       umi,
@@ -664,8 +865,6 @@ export async function verifyCollection(
   nftMint: string
 ): Promise<void> {
   try {
-    console.log("🔍 Verifying collection for NFT...");
-
     const creatorKeypair = walletToUmiKeypair(creatorWallet);
     umi.use(keypairIdentity(creatorKeypair));
 
@@ -676,12 +875,742 @@ export async function verifyCollection(
       collectionMint: UMIPublicKey(collectionMint),
       authority: umi.identity,
     }).sendAndConfirm(umi);
-
-    console.log("✅ Collection verified successfully");
   } catch (error) {
     console.error("❌ Error verifying collection:", error);
     throw new Error(
       `Failed to verify collection: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function buyCreatorPass(
+  buyerWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  passData: {
+    tokenMint: string;
+    price: number; // in USDC
+    creatorPublicKey: string;
+    vaultAddress: string;
+  }
+): Promise<{
+  transactionSignature: string;
+  nftMint: string;
+}> {
+  try {
+    console.log("🛒 Starting Creator Pass purchase...");
+    console.log("📝 Pass data:", {
+      tokenMint: passData.tokenMint,
+      price: passData.price,
+      creator: passData.creatorPublicKey,
+      vault: passData.vaultAddress,
+    });
+
+    const connection = new Connection(clusterApiUrl("devnet"));
+
+    const programAccount = await connection.getAccountInfo(PROGRAM_ID);
+    if (!programAccount) {
+      throw new Error("Program is not deployed to devnet");
+    }
+
+    const creatorPoolAddress = generateCreatorPoolAddress(
+      passData.creatorPublicKey
+    );
+
+    const usdcMint = new PublicKey(
+      "So11111111111111111111111111111111111111112"
+    );
+
+    const totalAmount = Math.floor(passData.price * 1e9);
+
+    console.log("💰 Purchase details:", {
+      totalAmount: totalAmount,
+      priceInUSDC: passData.price,
+      creatorPool: creatorPoolAddress,
+      vault: passData.vaultAddress,
+      usdcMint: usdcMint.toString(),
+    });
+
+    const umi = createUmiInstance();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    umi.use(walletAdapterIdentity(buyerWallet as any));
+
+    const nftMint = generateSigner(umi);
+    const collectionMint = UMIPublicKey(passData.tokenMint);
+
+    console.log("🪙 Creating individual NFT for buyer...");
+    await createNft(umi, {
+      mint: nftMint,
+      name: `Creator Pass #${Date.now()}`,
+      symbol: "PASS",
+      uri: "https://mock-storage.com/creator-pass-metadata.json",
+      sellerFeeBasisPoints: percentAmount(0),
+      collection: {
+        key: collectionMint,
+        verified: false,
+      },
+    }).sendAndConfirm(umi);
+
+    console.log("✅ NFT created for buyer:", nftMint.publicKey);
+
+    console.log("🔍 Checking vault balance before transfer...");
+    const vaultInfoBefore = await getVaultInfo(passData.creatorPublicKey);
+    console.log("📊 Vault before transfer:", vaultInfoBefore);
+
+    console.log("💰 Simulating revenue distribution...");
+
+    const totalAmountLamports = Math.floor(passData.price * 1e9);
+    const vaultAmount = Math.floor((totalAmountLamports * 70) / 100);
+    const creatorAmount = totalAmountLamports - vaultAmount;
+
+    console.log("📊 Revenue distribution:", {
+      totalAmount: totalAmountLamports,
+      vaultAmount: vaultAmount,
+      creatorAmount: creatorAmount,
+      vaultPercentage: 70,
+      creatorPercentage: 30,
+    });
+
+    const transaction = new Transaction();
+
+    const vaultTransferInstruction = SystemProgram.transfer({
+      fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
+      toPubkey: new PublicKey(passData.vaultAddress),
+      lamports: vaultAmount,
+    });
+    transaction.add(vaultTransferInstruction);
+
+    const creatorTransferInstruction = SystemProgram.transfer({
+      fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
+      toPubkey: new PublicKey(passData.creatorPublicKey),
+      lamports: creatorAmount,
+    });
+    transaction.add(creatorTransferInstruction);
+
+    console.log("🔗 Setting recent blockhash...");
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = new PublicKey(buyerWallet.publicKey.toBase58());
+
+    console.log("🔐 Signing and sending transaction...");
+    const signedTransaction = (await buyerWallet.signTransaction(
+      transaction
+    )) as Transaction;
+    const signature = await connection.sendRawTransaction(
+      signedTransaction.serialize()
+    );
+    await connection.confirmTransaction(signature, "confirmed");
+
+    console.log("✅ Revenue distribution completed!");
+    console.log("📋 Transaction signature:", signature);
+
+    const vaultInfoAfter = await getVaultInfo(passData.creatorPublicKey);
+
+    const vaultIncrease = vaultInfoAfter.balance - vaultInfoBefore.balance;
+
+    return {
+      transactionSignature: signature,
+      nftMint: nftMint.publicKey,
+    };
+  } catch (error) {
+    console.error("❌ Error buying creator pass:", error);
+    throw new Error(
+      `Failed to buy creator pass: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function fileClaimOnChain(
+  creatorWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  claimData: {
+    evidenceIpfsHash: string;
+    creatorPoolAddress: string;
+    vaultAddress: string;
+    creatorUsdcAccount: string;
+  }
+): Promise<{
+  claimAddress: string;
+  transactionSignature: string;
+}> {
+  try {
+    console.log("📝 Filing claim on-chain...");
+
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
+      signTransaction: creatorWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => creatorWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const creatorPoolPublicKey = new PublicKey(claimData.creatorPoolAddress);
+
+    // Get CreatorPool data to get claim count
+    const creatorPoolAccount = await connection.getAccountInfo(
+      creatorPoolPublicKey
+    );
+    if (!creatorPoolAccount) {
+      throw new Error("CreatorPool account not found");
+    }
+
+    let claimCount;
+    try {
+      const creatorPoolData = await program.coder.accounts.decode(
+        "CreatorPool",
+        creatorPoolAccount.data
+      );
+
+      claimCount = creatorPoolData.claimCount;
+    } catch (decodeError) {
+      let foundClaimCount = 0;
+      const maxAttempts = 10;
+
+      for (let i = 0; i < maxAttempts; i++) {
+        const testClaimCount = new anchor.BN(i);
+        const testClaimCountBuffer = Buffer.alloc(8);
+        testClaimCountBuffer.writeUInt32LE(i, 0);
+        const [testClaimAddress] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("claim"),
+            creatorPoolPublicKey.toBuffer(),
+            testClaimCountBuffer,
+          ],
+          PROGRAM_ID
+        );
+
+        try {
+          const testAccount = await connection.getAccountInfo(testClaimAddress);
+          if (!testAccount) {
+            foundClaimCount = i;
+            break;
+          }
+        } catch (error) {
+          foundClaimCount = i;
+          break;
+        }
+      }
+
+      claimCount = new anchor.BN(foundClaimCount);
+    }
+
+    const claimCountBuffer = Buffer.alloc(8);
+    claimCountBuffer.writeUInt32LE(claimCount.toNumber(), 0);
+
+    const [generatedClaimAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("claim"), creatorPoolPublicKey.toBuffer(), claimCountBuffer],
+      PROGRAM_ID
+    );
+
+    const factoryAddress = generateFactoryAddress();
+    const usdcMint = new PublicKey(
+      "So11111111111111111111111111111111111111112"
+    );
+
+    const creatorUsdcAccount = await getOrCreateTokenAccount(
+      connection,
+      wallet.publicKey,
+      usdcMint,
+      wallet.signTransaction as (
+        transaction: Transaction
+      ) => Promise<Transaction>
+    );
+
+    try {
+      const accountInfo = await connection.getAccountInfo(creatorUsdcAccount);
+    } catch (error) {
+      console.error("❌ Error verifying token account:", error);
+    }
+
+    const tx = await program.methods
+      .fileClaim(
+        claimData.evidenceIpfsHash,
+        new anchor.BN(claimCount.toNumber()),
+        creatorPoolPublicKey
+      )
+      .accounts({
+        claim: generatedClaimAddress,
+        creatorPool: creatorPoolPublicKey,
+        creator: wallet.publicKey,
+        creatorUsdcAccount: creatorUsdcAccount,
+        creatorPoolVault: new PublicKey(claimData.vaultAddress),
+        usdcMint: usdcMint,
+        factory: new PublicKey(factoryAddress),
+        tokenProgram: new PublicKey(
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ),
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    return {
+      claimAddress: generatedClaimAddress.toString(),
+      transactionSignature: tx,
+    };
+  } catch (error) {
+    console.error("❌ Error filing claim:", error);
+    throw new Error(
+      `Failed to file claim: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function voteOnClaimOnChain(
+  voterWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  voteData: {
+    claimAddress: string;
+    creatorPoolAddress: string;
+    voteChoice: "Yes" | "No";
+  }
+): Promise<{
+  voteAddress: string;
+  transactionSignature: string;
+}> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(voterWallet.publicKey.toBase58()),
+      signTransaction: voterWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => voterWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const claimPublicKey = new PublicKey(voteData.claimAddress);
+    const creatorPoolPublicKey = new PublicKey(voteData.creatorPoolAddress);
+
+    const [voteAddress] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("vote"),
+        claimPublicKey.toBuffer(),
+        wallet.publicKey.toBuffer(),
+      ],
+      PROGRAM_ID
+    );
+
+    const voteChoice = voteData.voteChoice === "Yes" ? { yes: {} } : { no: {} };
+
+    const tx = await program.methods
+      .vote(voteChoice)
+      .accounts({
+        claim: claimPublicKey,
+        creatorPool: creatorPoolPublicKey,
+        voteAccount: voteAddress,
+        fan: wallet.publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+
+    return {
+      voteAddress: voteAddress.toString(),
+      transactionSignature: tx,
+    };
+  } catch (error) {
+    console.error("❌ Error voting on claim:", error);
+    throw new Error(
+      `Failed to vote on claim: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function getClaimData(claimAddress: string) {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      idl as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new AnchorProvider(connection, {} as any, {})
+    );
+
+    const claimAccount = await connection.getAccountInfo(
+      new PublicKey(claimAddress)
+    );
+    if (!claimAccount) {
+      throw new Error("Claim account not found");
+    }
+
+    const claimData = await program.coder.accounts.decode(
+      "Claim",
+      claimAccount.data
+    );
+
+    return {
+      creatorPool: claimData.creatorPool.toString(),
+      creator: claimData.creator.toString(),
+      poolAmountAtClaim: claimData.poolAmountAtClaim.toString(),
+      evidenceIpfsHash: claimData.evidenceIpfsHash,
+      status: claimData.status,
+      yesVotes: claimData.yesVotes.toString(),
+      noVotes: claimData.noVotes.toString(),
+      votingStartedAt: new Date(claimData.votingStartedAt.toNumber() * 1000),
+      votingEndsAt: new Date(claimData.votingEndsAt.toNumber() * 1000),
+      createdAt: new Date(claimData.createdAt.toNumber() * 1000),
+    };
+  } catch (error) {
+    console.error("❌ Error getting claim data:", error);
+    throw new Error(
+      `Failed to get claim data: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function verifyNftOwnership(
+  voterWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  nftMintAddress: string,
+  creatorAddress: string
+): Promise<{
+  nftOwnershipAddress: string;
+  creatorCollectionAddress: string;
+  isOwner: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  nftOwnershipData?: any;
+}> {
+  try {
+    console.log("🔍 Verifying NFT ownership for voting...");
+    console.log("  - Voter:", voterWallet.publicKey.toBase58());
+    console.log("  - NFT Mint:", nftMintAddress);
+    console.log("  - Creator:", creatorAddress);
+
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const nftMint = new PublicKey(nftMintAddress);
+    const creator = new PublicKey(creatorAddress);
+
+    const [nftOwnershipAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("nft_ownership"), nftMint.toBuffer()],
+      PROGRAM_ID
+    );
+
+    const [creatorCollectionAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("creator_collection"), nftMint.toBuffer()],
+      PROGRAM_ID
+    );
+
+    try {
+      const nftOwnershipAccount = await connection.getAccountInfo(
+        nftOwnershipAddress
+      );
+      if (!nftOwnershipAccount) {
+        return {
+          nftOwnershipAddress: nftOwnershipAddress.toString(),
+          creatorCollectionAddress: creatorCollectionAddress.toString(),
+          isOwner: false,
+        };
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const program = new Program(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        idl as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        new AnchorProvider(connection, {} as any, {})
+      );
+      const nftOwnershipData = await program.coder.accounts.decode(
+        "NftOwnership",
+        nftOwnershipAccount.data
+      );
+
+      const isOwner =
+        nftOwnershipData.owner.toString() ===
+          voterWallet.publicKey.toBase58() &&
+        nftOwnershipData.creator.toString() === creatorAddress;
+
+      return {
+        nftOwnershipAddress: nftOwnershipAddress.toString(),
+        creatorCollectionAddress: creatorCollectionAddress.toString(),
+        isOwner,
+        nftOwnershipData,
+      };
+    } catch (error) {
+      return {
+        nftOwnershipAddress: nftOwnershipAddress.toString(),
+        creatorCollectionAddress: creatorCollectionAddress.toString(),
+        isOwner: false,
+      };
+    }
+  } catch (error) {
+    console.error("❌ Error in verifyNftOwnership:", error);
+    throw new Error(
+      `Failed to verify NFT ownership: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function createNftOwnershipAccount(
+  voterWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  nftMintAddress: string,
+  creatorAddress: string
+): Promise<{
+  nftOwnershipAddress: string;
+  creatorCollectionAddress: string;
+  transactionSignature: string;
+}> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(voterWallet.publicKey.toBase58()),
+      signTransaction: voterWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => voterWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const nftMint = new PublicKey(nftMintAddress);
+    const creator = new PublicKey(creatorAddress);
+
+    const [nftOwnershipAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("nft_ownership"), nftMint.toBuffer()],
+      PROGRAM_ID
+    );
+
+    const [creatorCollectionAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("creator_collection"), nftMint.toBuffer()],
+      PROGRAM_ID
+    );
+
+    const tx = await program.methods
+      .verifyFanPass()
+      .accounts({
+        fan: wallet.publicKey,
+        nftMint: nftMint,
+        creatorCollection: creatorCollectionAddress,
+        nftOwnership: nftOwnershipAddress,
+      })
+      .rpc();
+
+    return {
+      nftOwnershipAddress: nftOwnershipAddress.toString(),
+      creatorCollectionAddress: creatorCollectionAddress.toString(),
+      transactionSignature: tx,
+    };
+  } catch (error) {
+    console.error("❌ Error creating NFT ownership account:", error);
+    throw new Error(
+      `Failed to create NFT ownership account: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function finalizeClaimOnChain(
+  creatorWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  claimAddress: string
+): Promise<{ transactionSignature: string }> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
+      signTransaction: creatorWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => creatorWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const claimPublicKey = new PublicKey(claimAddress);
+
+    const claimAccount = await connection.getAccountInfo(claimPublicKey);
+    if (!claimAccount) {
+      throw new Error("Claim account not found");
+    }
+
+    const claimData = await program.coder.accounts.decode(
+      "Claim",
+      claimAccount.data
+    );
+    const creatorPoolPublicKey = new PublicKey(
+      claimData.creatorPool.toString()
+    );
+
+    const tx = await program.methods
+      .finalizeClaim()
+      .accounts({
+        creator: wallet.publicKey,
+        claim: claimPublicKey,
+        creatorPool: creatorPoolPublicKey,
+      })
+      .rpc();
+
+    return { transactionSignature: tx };
+  } catch (error) {
+    console.error("❌ Error finalizing claim:", error);
+    throw new Error(
+      `Failed to finalize claim: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function payoutClaimOnChain(
+  creatorWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  claimAddress: string
+): Promise<{ transactionSignature: string }> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
+      signTransaction: creatorWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => creatorWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const claimPublicKey = new PublicKey(claimAddress);
+
+    const claimAccount = await connection.getAccountInfo(claimPublicKey);
+    if (!claimAccount) {
+      throw new Error("Claim account not found");
+    }
+
+    const claimData = await program.coder.accounts.decode(
+      "Claim",
+      claimAccount.data
+    );
+    const creatorPoolPublicKey = new PublicKey(
+      claimData.creatorPool.toString()
+    );
+
+    const tx = await program.methods
+      .payoutClaim()
+      .accounts({
+        creator: wallet.publicKey,
+        claim: claimPublicKey,
+        creatorPool: creatorPoolPublicKey,
+      })
+      .rpc();
+
+    return { transactionSignature: tx };
+  } catch (error) {
+    console.error("❌ Error processing claim payout:", error);
+    throw new Error(
+      `Failed to process claim payout: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function refundClaimOnChain(
+  creatorWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  claimAddress: string
+): Promise<{ transactionSignature: string }> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
+      signTransaction: creatorWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => creatorWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const claimPublicKey = new PublicKey(claimAddress);
+
+    const claimAccount = await connection.getAccountInfo(claimPublicKey);
+    if (!claimAccount) {
+      throw new Error("Claim account not found");
+    }
+
+    const claimData = await program.coder.accounts.decode(
+      "Claim",
+      claimAccount.data
+    );
+    const creatorPoolPublicKey = new PublicKey(
+      claimData.creatorPool.toString()
+    );
+
+    const tx = await program.methods
+      .refundClaim()
+      .accounts({
+        creator: wallet.publicKey,
+        claim: claimPublicKey,
+        creatorPool: creatorPoolPublicKey,
+      })
+      .rpc();
+
+    return { transactionSignature: tx };
+  } catch (error) {
+    console.error("❌ Error processing claim refund:", error);
+    throw new Error(
+      `Failed to process claim refund: ${
         error instanceof Error ? error.message : "Unknown error"
       }`
     );
@@ -699,15 +1628,106 @@ const mockUploader = {
         );
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      uploadJson: async (json: any) => {
+      uploadJson: async () => {
         return `https://mock-storage.com/metadata-${Date.now()}.json`;
       },
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      getUploadPrice: async (files: any[]) => {
+      getUploadPrice: async () => {
         return { basisPoints: BigInt(0), identifier: "SOL", decimals: 9 };
       },
     };
   },
 };
+
+export async function finalizeClaimWithDistributionOnChain(
+  creatorWallet: {
+    publicKey: { toBase58(): string };
+    signTransaction: (transaction: unknown) => Promise<unknown>;
+  },
+  claimAddress: string,
+  creatorPoolAddress: string,
+  vaultAddress: string
+): Promise<{
+  transactionSignature: string;
+  result: "approved" | "rejected";
+  distributedAmount: number;
+}> {
+  try {
+    const connection = new Connection(clusterApiUrl("devnet"));
+    const wallet = {
+      publicKey: new PublicKey(creatorWallet.publicKey.toBase58()),
+      signTransaction: creatorWallet.signTransaction,
+      signAllTransactions: async (transactions: unknown[]) => {
+        return await Promise.all(
+          transactions.map((tx) => creatorWallet.signTransaction(tx))
+        );
+      },
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const provider = new AnchorProvider(connection, wallet as any, {});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const program = new Program(idl as any, provider);
+
+    const factoryAddress = generateFactoryAddress();
+    const usdcMint = new PublicKey(
+      "So11111111111111111111111111111111111111112"
+    );
+
+    const creatorUsdcAccount = await getOrCreateTokenAccount(
+      connection,
+      wallet.publicKey,
+      usdcMint,
+      wallet.signTransaction as (
+        transaction: Transaction
+      ) => Promise<Transaction>
+    );
+
+    let vaultBalance = 0;
+    try {
+      const vaultAccount = await connection.getAccountInfo(
+        new PublicKey(vaultAddress)
+      );
+      if (vaultAccount) {
+        const vaultData = await program.coder.accounts.decode(
+          "TokenAccount",
+          vaultAccount.data
+        );
+        vaultBalance = vaultData.amount.toNumber();
+      }
+    } catch (error) {
+      console.log("⚠️ Could not get vault balance:", error);
+    }
+
+    console.log("💰 Vault balance before transfer:", vaultBalance);
+
+    const tx = await program.methods
+      .finalizeClaimWithDistribution()
+      .accounts({
+        claim: new PublicKey(claimAddress),
+        creatorPool: new PublicKey(creatorPoolAddress),
+        creatorPoolVault: new PublicKey(vaultAddress),
+        creatorUsdcAccount: creatorUsdcAccount,
+        creator: wallet.publicKey,
+        usdcMint: usdcMint,
+        factory: new PublicKey(factoryAddress),
+        tokenProgram: new PublicKey(
+          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        ),
+      })
+      .rpc();
+
+    return {
+      transactionSignature: tx,
+      result: "approved",
+      distributedAmount: vaultBalance,
+    };
+  } catch (error) {
+    console.error("❌ Error finalizing claim with distribution:", error);
+    throw new Error(
+      `Failed to finalize claim with distribution: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}

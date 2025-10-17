@@ -104,7 +104,7 @@ export const updatePass = async (req: AuthRequest, res: Response) => {
 
 export const buyPass = async (req: AuthRequest, res: Response) => {
   try {
-    const { passId, txId } = req.body;
+    const { passId, txId, nftMint } = req.body;
     const userId = req.user?.userId;
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -119,21 +119,38 @@ export const buyPass = async (req: AuthRequest, res: Response) => {
     if (!pass) {
       return res.status(404).json({ error: "Pass not found" });
     }
-    let success = true;
-    // success= here check the transaction of on chain  usng txid and assign value of success accordingly
-    if (success) {
-      await prisma.ownership.create({
-        data: {
-          userId,
-          creatorId: pass.creatorId,
-          passId,
-        },
-      });
-      res.status(200).json({ message: "Pass bought successfully" });
-    } else {
-      res.status(400).json({ error: "Transaction failed" });
-    }
+
+    // For now, we'll trust the frontend transaction and create the ownership record
+    // In production, you might want to add transaction verification
+    console.log("📝 Creating ownership record for transaction:", txId);
+
+    // Create ownership record
+    await prisma.ownership.create({
+      data: {
+        userId,
+        creatorId: pass.creatorId,
+        passId,
+      },
+    });
+
+    // Log the purchase for analytics
+    console.log("📊 Pass purchase completed:", {
+      userId,
+      passId,
+      creatorId: pass.creatorId,
+      price: pass.price,
+      txId,
+      nftMint,
+      vaultAddress: pass.vault_address,
+    });
+
+    res.status(200).json({
+      message: "Pass bought successfully",
+      nftMint,
+      txId,
+    });
   } catch (e: any) {
+    console.error("Buy pass error:", e);
     res.status(500).json({
       message: e.message,
     });

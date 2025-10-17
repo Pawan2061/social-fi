@@ -4,13 +4,13 @@ use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
 #[derive(Accounts)]
-#[instruction(evidence_ipfs_hash: String)]
+#[instruction(evidence_ipfs_hash: String, claim_count: u64, creator_pool_address: Pubkey)]
 pub struct FileClaim<'info> {
     #[account(
         init,
         payer = creator,
         space = Claim::LEN,
-        seeds = [b"claim", creator_pool.key().as_ref(), &creator_pool.claim_count.to_le_bytes()],
+        seeds = [b"claim", creator_pool_address.as_ref(), &claim_count.to_le_bytes()],
         bump
     )]
     pub claim: Account<'info, Claim>,
@@ -113,6 +113,35 @@ pub struct RefundClaim<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct FinalizeClaimWithDistribution<'info> {
+    #[account(
+        mut,
+        has_one = creator_pool,
+        constraint = (claim.status == crate::state::ClaimStatus::Voting || claim.status == crate::state::ClaimStatus::Pending) @ ErrorCode::InvalidClaimStatus,
+        constraint = Clock::get()?.unix_timestamp >= claim.voting_ends_at @ ErrorCode::VotingStillActive
+    )]
+    pub claim: Account<'info, Claim>,
+
+    #[account(mut)]
+    pub creator_pool: Account<'info, CreatorPool>,
+
+    #[account(mut)]
+    pub creator_pool_vault: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub creator_usdc_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub creator: Signer<'info>,
+
+    pub usdc_mint: Account<'info, token::Mint>,
+
+    pub factory: Account<'info, Factory>,
+
+    pub token_program: Program<'info, Token>,
+}
+
 #[error_code]
 pub enum ErrorCode {
     #[msg("Invalid claim status for this operation")]
@@ -125,9 +154,35 @@ pub enum ErrorCode {
     MathOverflow,
     #[msg("Insufficient funds")]
     InsufficientFunds,
+    #[msg("Invalid CreatorPool address provided")]
+    InvalidCreatorPoolAddress,
 }
 
-pub fn file_claim(ctx: Context<FileClaim>, evidence_ipfs_hash: String) -> Result<()> {
+pub fn file_claim(
+    ctx: Context<FileClaim>,
+    evidence_ipfs_hash: String,
+    claim_count: u64,
+    creator_pool_address: Pubkey,
+) -> Result<()> {
+    // Debug logging
+    msg!(
+        "Contract received creator_pool_address: {}",
+        creator_pool_address
+    );
+    msg!("Contract received claim_count: {}", claim_count);
+    msg!(
+        "Contract received evidence_ipfs_hash: {}",
+        evidence_ipfs_hash
+    );
+    msg!(
+        "Contract creator_pool.key(): {}",
+        ctx.accounts.creator_pool.key()
+    );
+    msg!(
+        "Are addresses equal? {}",
+        creator_pool_address == ctx.accounts.creator_pool.key()
+    );
+
     let claim = &mut ctx.accounts.claim;
     let creator_pool = &mut ctx.accounts.creator_pool;
 
@@ -137,7 +192,7 @@ pub fn file_claim(ctx: Context<FileClaim>, evidence_ipfs_hash: String) -> Result
     claim.creator = ctx.accounts.creator.key();
     claim.pool_amount_at_claim = pool_balance;
     claim.evidence_ipfs_hash = evidence_ipfs_hash;
-    claim.status = crate::state::ClaimStatus::Pending;
+    claim.status = crate::state::ClaimStatus::Voting;
     claim.yes_votes = 0;
     claim.no_votes = 0;
     claim.voting_started_at = Clock::get()?.unix_timestamp;
@@ -145,10 +200,9 @@ pub fn file_claim(ctx: Context<FileClaim>, evidence_ipfs_hash: String) -> Result
     claim.created_at = Clock::get()?.unix_timestamp;
     claim.bump = ctx.bumps.claim;
 
-    creator_pool.claim_count = creator_pool
-        .claim_count
-        .checked_add(1)
-        .ok_or(ErrorCode::MathOverflow)?;
+    // Update creator_pool.claim_count to be the maximum of current count and provided count + 1
+    let new_claim_count = std::cmp::max(creator_pool.claim_count, (claim_count + 1).into());
+    creator_pool.claim_count = new_claim_count;
 
     emit!(ClaimFiled {
         claim: claim.key(),
@@ -265,7 +319,7 @@ pub fn payout_claim(ctx: Context<PayoutClaim>) -> Result<()> {
 
 pub fn refund_claim(ctx: Context<RefundClaim>) -> Result<()> {
     let claim = &mut ctx.accounts.claim;
-    let creator_pool = &mut ctx.accounts.creator_pool;
+    let _creator_pool = &mut ctx.accounts.creator_pool;
 
     let refund_amount = ctx.accounts.creator_pool_vault.amount;
 
@@ -278,6 +332,89 @@ pub fn refund_claim(ctx: Context<RefundClaim>) -> Result<()> {
         creator_pool: claim.creator_pool,
         total_refund_amount: refund_amount,
         nft_holders_count: 0,
+    });
+
+    Ok(())
+}
+
+pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistribution>) -> Result<()> {
+    let claim = &mut ctx.accounts.claim;
+    let creator_pool = &mut ctx.accounts.creator_pool;
+
+    let total_votes = claim
+        .yes_votes
+        .checked_add(claim.no_votes)
+        .ok_or(ErrorCode::MathOverflow)?;
+
+    require!(
+        total_votes >= creator_pool.voting_quorum,
+        ErrorCode::InsufficientVotes
+    );
+
+    let payout_amount = ctx.accounts.creator_pool_vault.amount;
+    require!(payout_amount > 0, ErrorCode::InsufficientFunds);
+
+    if claim.yes_votes > claim.no_votes {
+        // Claim approved - transfer funds to creator
+        claim.status = crate::state::ClaimStatus::Approved;
+
+        let pool_bump = creator_pool.bump;
+        let creator_key = claim.creator;
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.creator_pool_vault.to_account_info(),
+            to: ctx.accounts.creator_usdc_account.to_account_info(),
+            authority: creator_pool.to_account_info(),
+        };
+
+        let seeds = &[b"creator_pool", creator_key.as_ref(), &[pool_bump]];
+        let signer = &[&seeds[..]];
+
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer,
+        );
+
+        token::transfer(cpi_ctx, payout_amount)?;
+
+        creator_pool.total_withdrawn = creator_pool
+            .total_withdrawn
+            .checked_add(payout_amount)
+            .ok_or(ErrorCode::MathOverflow)?;
+
+        claim.status = crate::state::ClaimStatus::Paid;
+
+        emit!(PayoutSent {
+            claim: claim.key(),
+            creator: claim.creator,
+            creator_pool: claim.creator_pool,
+            payout_amount,
+        });
+    } else {
+        // Claim rejected - set status to refunded (backend will handle distribution to NFT holders)
+        claim.status = crate::state::ClaimStatus::Refunded;
+
+        emit!(RefundDistributed {
+            claim: claim.key(),
+            creator_pool: claim.creator_pool,
+            total_refund_amount: payout_amount,
+            nft_holders_count: 0, // Backend will handle actual distribution
+        });
+    }
+
+    emit!(ClaimFinalized {
+        claim: claim.key(),
+        creator: claim.creator,
+        creator_pool: claim.creator_pool,
+        pool_amount: claim.pool_amount_at_claim,
+        yes_votes: claim.yes_votes,
+        no_votes: claim.no_votes,
+        status: match claim.status {
+            crate::state::ClaimStatus::Paid => "Paid".to_string(),
+            crate::state::ClaimStatus::Refunded => "Refunded".to_string(),
+            _ => "Unknown".to_string(),
+        },
     });
 
     Ok(())

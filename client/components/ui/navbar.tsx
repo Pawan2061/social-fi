@@ -13,6 +13,28 @@ export default function Navbar() {
           </span>
           <span className="font-extrabold text-lg">Social Fi</span>
         </Link>
+
+        <nav className="hidden md:flex items-center space-x-6">
+          <Link
+            href="/feed"
+            className="text-gray-700 hover:text-blue-600 font-medium"
+          >
+            Feed
+          </Link>
+          <Link
+            href="/claims"
+            className="text-gray-700 hover:text-blue-600 font-medium"
+          >
+            Claims
+          </Link>
+          {/* <Link
+            href="/test-claims"
+            className="text-gray-700 hover:text-blue-600 font-medium"
+          >
+            Test
+          </Link> */}
+        </nav>
+
         <WalletAuthButton />
       </div>
     </header>
