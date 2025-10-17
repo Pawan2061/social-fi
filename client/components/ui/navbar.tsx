@@ -9,9 +9,9 @@ export default function Navbar() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link href="/" className="inline-flex items-center gap-2">
           <span className="bg-yellow-300 text-black px-2 py-1 border-4 border-foreground shadow-[4px_4px_0_0_#000] font-extrabold text-sm">
-            CID
+            SF
           </span>
-          <span className="font-extrabold text-lg">Creator Insurance DAO</span>
+          <span className="font-extrabold text-lg">Social Fi</span>
         </Link>
         <WalletAuthButton />
       </div>

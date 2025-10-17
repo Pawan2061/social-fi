@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Creator Insurance DAO - Web3 Safety Net for Content Creators",
+  title: "Social Fi - Web3 Safety Net for Content Creators",
   description:
     "A community-driven safety net that fuses NFT fan passes + insurance pools + AI assistance. Protect creators from financial fragility with transparent, on-chain protection.",
   themeColor: [
