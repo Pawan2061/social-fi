@@ -179,7 +179,6 @@ export default function CreateNewWidget({
             const widget = await res.json();
             onCreated?.(widget);
 
-            // Reset form on success
             setTitle("");
             setDescription("");
             setMetric("PASS_COUNT");

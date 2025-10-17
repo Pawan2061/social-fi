@@ -5,6 +5,7 @@ import GoalWidgetCard from "@/components/widgets/goal-widget-card";
 import PollWidgetCard from "@/components/widgets/poll-widget-card";
 import type { PollWidgetItem } from "@/types/widget/widget-types";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 type WidgetFeedProps = {
     items?: WidgetListItem[]; // optional mock data
@@ -15,6 +16,8 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
 
     // If items are provided, don't fetch from the API
     const { data, isLoading, error, refetch } = useFetchWidgets({ enabled: !useMock });
+
+    const [isVotingByWidgetId, setIsVotingByWidgetId] = useState<Record<number, boolean>>({});
 
     if (!useMock && isLoading) {
         return (
@@ -76,6 +79,7 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
             return;
         }
         try {
+            setIsVotingByWidgetId((prev) => ({ ...prev, [widgetId]: true }));
             const token = localStorage.getItem("authToken");
             if (!token) throw new Error("No authentication token found");
 
@@ -93,6 +97,8 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
         } catch (e) {
             console.error(e);
             // Optional: add toast
+        } finally {
+            setIsVotingByWidgetId((prev) => ({ ...prev, [widgetId]: false }));
         }
     };
 
@@ -106,7 +112,11 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
                     {w.type === 'GOAL' ? (
                         <GoalWidgetCard widget={w} />
                     ) : (
-                        <PollWidgetCard widget={w as PollWidgetItem} onVote={handleVote} />
+                        <PollWidgetCard
+                            widget={w as PollWidgetItem}
+                            onVote={handleVote}
+                            isVoting={!!isVotingByWidgetId[w.id]}
+                        />
                     )}
                 </div>
             ))}
