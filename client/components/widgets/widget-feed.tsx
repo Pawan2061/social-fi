@@ -5,11 +5,21 @@ import GoalWidgetCard from "@/components/widgets/goal-widget-card";
 import PollWidgetCard from "@/components/widgets/poll-widget-card";
 import type { PollWidgetItem } from "@/types/widget/widget-types";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
-export default function WidgetFeed() {
-    const { data, isLoading, error, refetch } = useFetchWidgets();
+type WidgetFeedProps = {
+    items?: WidgetListItem[]; // optional mock data
+};
 
-    if (isLoading) {
+export default function WidgetFeed({ items }: WidgetFeedProps) {
+    const useMock = Array.isArray(items) && items.length > 0;
+
+    // If items are provided, don't fetch from the API
+    const { data, isLoading, error, refetch } = useFetchWidgets({ enabled: !useMock });
+
+    const [isVotingByWidgetId, setIsVotingByWidgetId] = useState<Record<number, boolean>>({});
+
+    if (!useMock && isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[300px]">
                 <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-6 transform rotate-1">
@@ -20,7 +30,7 @@ export default function WidgetFeed() {
         );
     }
 
-    if (error) {
+    if (!useMock && error) {
         return (
             <div className="flex items-center justify-center min-h-[300px]">
                 <div className="bg-red-50 border-4 border-red-500 shadow-[6px_6px_0_0_#ef4444] p-6 transform rotate-1 text-center">
@@ -39,12 +49,14 @@ export default function WidgetFeed() {
         );
     }
 
-    // Server returns either [] or { message, widgets: [] }. Normalize here.
-    const widgets: WidgetListItem[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.widgets)
-            ? data.widgets
-            : [];
+    // Normalize fetched data
+    const widgets: WidgetListItem[] = useMock
+        ? (items as WidgetListItem[])
+        : Array.isArray(data)
+            ? data
+            : Array.isArray(data?.widgets)
+                ? data.widgets
+                : [];
 
     if (!widgets.length) {
         return (
@@ -62,7 +74,12 @@ export default function WidgetFeed() {
     }
 
     const handleVote = async (widgetId: number, optionId: number) => {
+        if (useMock) {
+            console.log("Mock vote:", { widgetId, optionId });
+            return;
+        }
         try {
+            setIsVotingByWidgetId((prev) => ({ ...prev, [widgetId]: true }));
             const token = localStorage.getItem("authToken");
             if (!token) throw new Error("No authentication token found");
 
@@ -80,6 +97,8 @@ export default function WidgetFeed() {
         } catch (e) {
             console.error(e);
             // Optional: add toast
+        } finally {
+            setIsVotingByWidgetId((prev) => ({ ...prev, [widgetId]: false }));
         }
     };
 
@@ -93,7 +112,11 @@ export default function WidgetFeed() {
                     {w.type === 'GOAL' ? (
                         <GoalWidgetCard widget={w} />
                     ) : (
-                        <PollWidgetCard widget={w as PollWidgetItem} onVote={handleVote} />
+                        <PollWidgetCard
+                            widget={w as PollWidgetItem}
+                            onVote={handleVote}
+                            isVoting={!!isVotingByWidgetId[w.id]}
+                        />
                     )}
                 </div>
             ))}

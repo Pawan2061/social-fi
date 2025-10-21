@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres123
+      POSTGRES_DB: myappdb
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Run Migrations
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: prisma_migrate
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    command: npx prisma migrate deploy
+    restart: "no"
+
+  # Express Server
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: express_server
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "4000:4000"
+    command: npm start
+
+volumes:
+  postgres_data:

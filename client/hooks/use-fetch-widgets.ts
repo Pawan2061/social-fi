@@ -21,12 +21,16 @@ export async function fetchWidgets() {
     return res.json();
 }
 
+type UseFetchWidgetsOptions = {
+    enabled?: boolean;
+};
 
-export const useFetchWidgets = () => {
+export const useFetchWidgets = (opts?: UseFetchWidgetsOptions) => {
     return useQuery({
         queryKey: ["widgets"],
-    queryFn: fetchWidgets,
+        queryFn: fetchWidgets,
         staleTime: 1000 * 60 * 5, // 5 minutes cache
         retry: 1, // retry once on failure
+        enabled: opts?.enabled ?? true,
     });
 }
