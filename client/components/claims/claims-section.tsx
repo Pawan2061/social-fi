@@ -339,17 +339,16 @@ export default function ClaimsSection({
       {/* Header */}
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold text-black">Claims & Voting</h2>
-        {!activeClaim && vaultBalance > 0 && (
-          <button
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            className="px-6 py-3 bg-black text-white font-bold border-2 border-black hover:bg-white hover:text-black transition-all duration-200"
-          >
-            {showCreateForm ? "Cancel" : "Create Claim"}
-          </button>
-        )}
+        {/* {!activeClaim && vaultBalance > 0 && ( */}
+        <button
+          onClick={() => setShowCreateForm(!showCreateForm)}
+          className="px-6 py-3 bg-black text-white font-bold border-2 border-black hover:bg-white hover:text-black transition-all duration-200"
+        >
+          {showCreateForm ? "Cancel" : "Create Claim"}
+        </button>
+        {/* )} */}
       </div>
 
-      {/* Create Claim Form */}
       {showCreateForm && (
         <div className="bg-yellow-100 border-2 border-black p-6">
           <h3 className="text-xl font-bold mb-4">Create New Claim</h3>
@@ -412,7 +411,7 @@ export default function ClaimsSection({
       )}
 
       {/* Active Claim */}
-      {activeClaim && (
+      {/* {activeClaim && (
         <div className="bg-blue-100 border-2 border-black p-6">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-bold">
@@ -444,10 +443,10 @@ export default function ClaimsSection({
             </div>
           </div>
         </div>
-      )}
+      )} */}
 
       {/* NFT Selection for Voting */}
-      {activeClaim && userNfts.length > 0 && (
+      {/* {activeClaim && userNfts.length > 0 && (
         <div className="bg-green-100 border-2 border-black p-6">
           <h3 className="text-xl font-bold mb-4">Select NFT to Vote</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
@@ -500,10 +499,10 @@ export default function ClaimsSection({
             </div>
           )}
         </div>
-      )}
+      )} */}
 
       {/* Past Claims */}
-      {claims.filter((claim) => getClaimStatus(claim) !== "Pending").length >
+      {/* {claims.filter((claim) => getClaimStatus(claim) !== "Pending").length >
         0 && (
         <div className="bg-gray-100 border-2 border-black p-6">
           <h3 className="text-xl font-bold mb-4">Past Claims</h3>
@@ -540,7 +539,7 @@ export default function ClaimsSection({
               })}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Status Messages */}
       {error && (
