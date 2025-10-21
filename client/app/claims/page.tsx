@@ -16,7 +16,6 @@ import {
   voteOnClaimOnChain,
   finalizeClaimWithDistributionOnChain,
   generateCreatorPoolAddress,
-  generateCreatorPoolVaultAddress,
   generateClaimAddress,
 } from "@/lib/nft-utils";
 import { useAuth } from "../../contexts/AuthContext";
@@ -65,7 +64,7 @@ export default function ClaimsPage() {
             updatedCounts[claimIdNum]?.timeRemaining &&
             updatedCounts[claimIdNum].timeRemaining > 0
           ) {
-            const votingWindow = 5 * 60 * 1000; // 5 minutes
+            const votingWindow = 2 * 60 * 1000; // 2 minutes
             const timeRemaining = Math.max(
               0,
               votingWindow - (Date.now() - new Date(claim.createdAt).getTime())
@@ -122,7 +121,7 @@ export default function ClaimsPage() {
       > = {};
 
       voteCountResults.forEach(({ claimId, counts }) => {
-        const votingWindow = 5 * 60 * 1000;
+        const votingWindow = 3 * 60 * 1000; // 3 minutes
         const timeRemaining = Math.max(
           0,
           votingWindow -
@@ -164,13 +163,17 @@ export default function ClaimsPage() {
       const creatorPoolAddress = generateCreatorPoolAddress(
         publicKey.toBase58()
       );
-      const vaultAddress = generateCreatorPoolVaultAddress(
-        publicKey.toBase58()
-      );
+
+      // Get the actual vault address from the user's pass data
+      if (!user?.pass?.vault_address) {
+        throw new Error("No vault address found in user pass data");
+      }
+      const vaultAddress = user.pass.vault_address;
+
       const evidenceIpfsHash =
         newClaim.evidenceIpfsHash || `ipfs://claim-${Date.now()}`;
 
-      console.log("🔍 Generated addresses:", {
+      console.log("🔍 Using actual addresses:", {
         creatorPool: creatorPoolAddress,
         vault: vaultAddress,
         evidence: evidenceIpfsHash,
@@ -428,7 +431,15 @@ export default function ClaimsPage() {
         const reasonData = JSON.parse(claim.reason);
         console.log("🔍 Raw reasonData:", reasonData);
 
-        if (reasonData.originalReason) {
+        // Try to get addresses from the reason data first
+        if (reasonData.creatorPoolAddress && reasonData.vaultAddress) {
+          creatorPoolAddress = reasonData.creatorPoolAddress;
+          vaultAddress = reasonData.vaultAddress;
+          console.log("✅ Extracted from reasonData:", {
+            creatorPoolAddress,
+            vaultAddress,
+          });
+        } else if (reasonData.originalReason) {
           const originalReasonData = JSON.parse(reasonData.originalReason);
           creatorPoolAddress = originalReasonData.creatorPoolAddress;
           vaultAddress = originalReasonData.vaultAddress;
@@ -436,15 +447,10 @@ export default function ClaimsPage() {
             creatorPoolAddress,
             vaultAddress,
           });
-        } else if (claim.creator?.wallet) {
-          creatorPoolAddress = generateCreatorPoolAddress(claim.creator.wallet);
-          vaultAddress = generateCreatorPoolVaultAddress(claim.creator.wallet);
-          console.log("🔧 Generated from creator wallet:", {
-            creatorPoolAddress,
-            vaultAddress,
-          });
         } else {
-          throw new Error("Cannot determine creator pool addresses");
+          throw new Error(
+            "Cannot determine creator pool addresses - vault address not found in claim data"
+          );
         }
 
         if (creatorPoolAddress) {
@@ -478,32 +484,7 @@ export default function ClaimsPage() {
         }
       } catch (parseError) {
         console.error("❌ Error parsing claim data:", parseError);
-
-        if (!claim.creator?.wallet) {
-          throw new Error(
-            "Cannot generate addresses - creator wallet not found"
-          );
-        }
-
-        creatorPoolAddress = generateCreatorPoolAddress(claim.creator.wallet);
-        vaultAddress = generateCreatorPoolVaultAddress(claim.creator.wallet);
-
-        for (let i = 0; i < 10; i++) {
-          const testClaimAddress = generateClaimAddress(creatorPoolAddress, i);
-          try {
-            const connection = new Connection(clusterApiUrl("devnet"));
-            const accountInfo = await connection.getAccountInfo(
-              new PublicKey(testClaimAddress)
-            );
-            if (accountInfo) {
-              claimAddress = testClaimAddress;
-              break;
-            }
-          } catch (error) {
-            console.log(`Claim at count ${i} doesn't exist:`, error);
-            continue;
-          }
-        }
+        throw new Error("Cannot parse claim data - vault address not found");
       }
 
       console.log("🔍 Final addresses:", {

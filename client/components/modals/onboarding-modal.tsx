@@ -15,7 +15,6 @@ import {
   createUmiInstance,
   createCreatorPassCollection,
   testNetworkConnection,
-  createCreatorPoolAddresses,
   createCreatorPoolOnChain,
 } from "@/lib/nft-utils";
 import { Button } from "@/components/ui/button";
@@ -148,7 +147,7 @@ export default function OnboardingModal({
           ) => Promise<unknown>,
         },
         1,
-        5 * 60
+        2 * 60 // 2 minutes
       );
       console.log(
         "✅ Creator pool addresses generated, vault address:",

@@ -23,10 +23,10 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   const [loadingVault, setLoadingVault] = useState(false);
 
   const loadVaultBalance = useCallback(async () => {
-    if (user.pass && user.wallet) {
+    if (user.pass && user.pass.vault_address) {
       setLoadingVault(true);
       try {
-        const vault = await getVaultInfo(user.wallet);
+        const vault = await getVaultInfo(user.pass.vault_address);
         setVaultInfo(vault);
       } catch (error) {
         console.error("Failed to load vault balance:", error);
@@ -34,7 +34,7 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
         setLoadingVault(false);
       }
     }
-  }, [user.pass, user.wallet]);
+  }, [user.pass]);
 
   useEffect(() => {
     loadVaultBalance();

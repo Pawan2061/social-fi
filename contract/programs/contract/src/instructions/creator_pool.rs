@@ -1,7 +1,7 @@
 use crate::events::CreatorPoolCreated;
 use crate::state::{CreatorPool, Factory, PoolStatus};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+// No longer using SPL tokens
 
 #[derive(Accounts)]
 pub struct CreateCreatorPool<'info> {
@@ -17,22 +17,13 @@ pub struct CreateCreatorPool<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    pub usdc_mint: Account<'info, Mint>,
-
-    #[account(
-        init,
-        payer = creator,
-        token::mint = usdc_mint,
-        token::authority = creator_pool,
-        seeds = [b"usdc_vault", creator.key().as_ref()],
-        bump
-    )]
-    pub usdc_vault: Account<'info, TokenAccount>,
+    /// CHECK: This is a regular account that can hold native SOL
+    #[account(mut)]
+    pub usdc_vault: AccountInfo<'info>,
 
     pub factory: Account<'info, Factory>,
 
     pub system_program: Program<'info, System>,
-    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -47,19 +38,11 @@ pub struct DepositToPool<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [b"usdc_vault", creator.key().as_ref()],
-        bump
-    )]
-    pub usdc_vault: Account<'info, anchor_spl::token::TokenAccount>,
-
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub from_token_account: Account<'info, anchor_spl::token::TokenAccount>,
+    pub usdc_vault: AccountInfo<'info>,
 
-    pub usdc_mint: Account<'info, anchor_spl::token::Mint>,
-
-    pub token_program: Program<'info, anchor_spl::token::Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -75,19 +58,15 @@ pub struct WithdrawFromPool<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    #[account(
-        mut,
-        seeds = [b"usdc_vault", creator.key().as_ref()],
-        bump
-    )]
-    pub usdc_vault: Account<'info, anchor_spl::token::TokenAccount>,
-
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub to_token_account: Account<'info, anchor_spl::token::TokenAccount>,
+    pub usdc_vault: AccountInfo<'info>,
 
-    pub usdc_mint: Account<'info, anchor_spl::token::Mint>,
+    /// CHECK: This is a regular account that can hold native SOL
+    #[account(mut)]
+    pub to_token_account: AccountInfo<'info>,
 
-    pub token_program: Program<'info, anchor_spl::token::Token>,
+    pub system_program: Program<'info, System>,
 }
 
 pub fn create_pool(
@@ -100,7 +79,7 @@ pub fn create_pool(
 
     creator_pool.creator = ctx.accounts.creator.key();
 
-    creator_pool.usdc_mint = ctx.accounts.usdc_mint.key();
+    creator_pool.usdc_mint = Pubkey::default(); // No longer using USDC mint
     creator_pool.usdc_vault = ctx.accounts.usdc_vault.key();
 
     creator_pool.total_deposited = 0;
@@ -140,16 +119,18 @@ pub fn create_pool(
 pub fn deposit_to_pool(ctx: Context<DepositToPool>, amount: u64) -> Result<()> {
     let creator_pool = &mut ctx.accounts.creator_pool;
 
-    let cpi_accounts = anchor_spl::token::Transfer {
-        from: ctx.accounts.from_token_account.to_account_info(),
+    // For native SOL, we use SystemProgram::transfer
+    let transfer_instruction = anchor_lang::system_program::Transfer {
+        from: ctx.accounts.creator.to_account_info(),
         to: ctx.accounts.usdc_vault.to_account_info(),
-        authority: ctx.accounts.creator.to_account_info(),
     };
 
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+    let cpi_ctx = CpiContext::new(
+        ctx.accounts.system_program.to_account_info(),
+        transfer_instruction,
+    );
 
-    anchor_spl::token::transfer(cpi_ctx, amount)?;
+    anchor_lang::system_program::transfer(cpi_ctx, amount)?;
 
     creator_pool.total_deposited = creator_pool
         .total_deposited
@@ -167,21 +148,17 @@ pub fn withdraw_from_pool(ctx: Context<WithdrawFromPool>, amount: u64) -> Result
         ErrorCode::InsufficientFunds
     );
 
-    let creator_key = creator_pool.creator;
-    let bump = creator_pool.bump;
-    let seeds = &[b"creator_pool", creator_key.as_ref(), &[bump]];
-    let signer = &[&seeds[..]];
-
-    let cpi_accounts = anchor_spl::token::Transfer {
-        from: ctx.accounts.usdc_vault.to_account_info(),
-        to: ctx.accounts.to_token_account.to_account_info(),
-        authority: creator_pool.to_account_info(),
-    };
-
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
-
-    anchor_spl::token::transfer(cpi_ctx, amount)?;
+    // For native SOL, we use regular transfer since vault is owned by creator
+    anchor_lang::system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.usdc_vault.to_account_info(),
+                to: ctx.accounts.to_token_account.to_account_info(),
+            },
+        ),
+        amount,
+    )?;
 
     creator_pool.total_withdrawn = creator_pool
         .total_withdrawn

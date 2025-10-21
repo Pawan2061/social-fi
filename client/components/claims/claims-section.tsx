@@ -8,7 +8,6 @@ import {
   fileClaimOnChain,
   voteOnClaimOnChain,
   generateCreatorPoolAddress,
-  generateCreatorPoolVaultAddress,
   verifyNftOwnership,
   createNftOwnershipAccount,
 } from "@/lib/nft-utils";
@@ -28,6 +27,7 @@ interface NftData {
 export default function ClaimsSection({
   creatorWallet,
   vaultBalance,
+  vaultAddress,
 }: ClaimsSectionProps) {
   const { publicKey, signTransaction } = useWallet();
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -114,9 +114,7 @@ export default function ClaimsSection({
       const creatorPoolAddress = await generateCreatorPoolAddress(
         publicKey.toBase58()
       );
-      const vaultAddress = await generateCreatorPoolVaultAddress(
-        publicKey.toBase58()
-      );
+      // Use the actual vault address from props
 
       // File claim on-chain for FULL vault amount
       const onChainResult = await fileClaimOnChain(
