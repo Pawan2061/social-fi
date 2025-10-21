@@ -13,7 +13,7 @@ COPY . .
 
 RUN npm run build
 
-# Stage 2: Runtime
+# Stage 2: Production
 FROM node:18-alpine
 
 WORKDIR /app
@@ -22,8 +22,8 @@ COPY package*.json ./
 RUN npm ci --production
 
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/src ./src          
-COPY --from=builder /app/dist ./dist        
+COPY --from=builder /app/src/generated ./dist/generated
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 4000
 
