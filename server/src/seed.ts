@@ -10,12 +10,12 @@ async function main() {
     Array.from({ length: 25 }).map(() =>
       prisma.user.create({
         data: {
-          name: faker.name.fullName(),
+          name: faker.person.fullName(),
           email: faker.internet.email(),
           emailVerified: faker.datatype.boolean(),
           image: faker.image.avatar(),
           wallet: faker.finance.ethereumAddress(),
-          nonce: faker.random.alphaNumeric(8),
+          nonce: faker.string.alphanumeric(8),
           onboarded: faker.datatype.boolean(),
         },
       })
@@ -30,9 +30,9 @@ async function main() {
       prisma.pass.create({
         data: {
           creatorId: creator.id,
-          tokenMint: faker.random.alphaNumeric(32),
+          tokenMint: faker.string.alphanumeric(32),
           vault_address: faker.finance.ethereumAddress(),
-          price: faker.datatype.float({ min: 5, max: 50 }),
+          price: faker.number.float({ min: 5, max: 50 }),
         },
       })
     )
@@ -43,7 +43,7 @@ async function main() {
   for (const user of users) {
     const ownedPasses = faker.helpers.arrayElements(
       passes,
-      faker.datatype.number({ min: 0, max: 3 })
+      faker.number.int({ min: 0, max: 3 })
     );
 
     for (const pass of ownedPasses) {
@@ -88,7 +88,7 @@ async function main() {
   ];
 
   for (const post of posts) {
-    const count = faker.datatype.number({ min: 1, max: 3 });
+    const count = faker.number.int({ min: 1, max: 3 });
     for (let i = 0; i < count; i++) {
       const imageUrl = faker.helpers.arrayElement(unsplashImages);
       await prisma.media.create({
@@ -115,10 +115,10 @@ async function main() {
           type: "GOAL",
           title: faker.company.catchPhrase(),
           description: faker.lorem.sentence(),
-          targetValue: faker.datatype.number({ min: 5, max: 100 }),
-          currentValue: faker.datatype.number({ min: 0, max: 50 }),
+          targetValue: faker.number.int({ min: 5, max: 100 }),
+          currentValue: faker.number.int({ min: 0, max: 50 }),
           metric: "PASS_COUNT",
-          expiresAt: faker.date.soon(30),
+          expiresAt: faker.date.soon({ days: 30 }),
           status: "ACTIVE",
         },
       });
@@ -130,12 +130,12 @@ async function main() {
           type: "POLL",
           title: faker.lorem.words(4),
           description: faker.lorem.sentence(),
-          expiresAt: faker.date.soon(7),
+          expiresAt: faker.date.soon({ days: 7 }),
           status: "ACTIVE",
         },
       });
 
-      const optionCount = faker.datatype.number({ min: 2, max: 4 });
+      const optionCount = faker.number.int({ min: 2, max: 4 });
       for (let i = 0; i < optionCount; i++) {
         await prisma.pollOption.create({
           data: {
