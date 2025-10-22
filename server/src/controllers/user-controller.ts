@@ -39,12 +39,27 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
       })
     );
 
+    const passSalesStats = await prisma.ownership.aggregate({
+      where: { creatorId: userId },
+      _count: { id: true },
+    });
+
+    const uniqueHolders = await prisma.ownership.groupBy({
+      by: ["userId"],
+      where: { creatorId: userId },
+      _count: { userId: true },
+    });
+
     res.status(200).json({
       ...user,
       // image: user.image ? await getSignedUrlForMedia(user.image) : null,
       image: user.image ? resolveMediaUrl(user.image) : null,
 
       posts,
+      passSalesStats: {
+        totalPassesSold: passSalesStats._count.id,
+        uniqueHolders: uniqueHolders.length,
+      },
     });
   } catch (e: any) {
     console.error(e);
@@ -72,6 +87,18 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
       where: { userId, creatorId: user.id },
     });
     const ownsPass = !!ownership;
+
+    // Get pass sales statistics for the creator
+    const passSalesStats = await prisma.ownership.aggregate({
+      where: { creatorId: user.id },
+      _count: { id: true },
+    });
+
+    const uniqueHolders = await prisma.ownership.groupBy({
+      by: ["userId"],
+      where: { creatorId: user.id },
+      _count: { userId: true },
+    });
 
     const posts = await Promise.all(
       user.posts.map(async (post) => {
@@ -107,6 +134,10 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
 
       posts,
       ownsPass,
+      passSalesStats: {
+        totalPassesSold: passSalesStats._count.id,
+        uniqueHolders: uniqueHolders.length,
+      },
     });
   } catch (e: any) {
     console.error(e);

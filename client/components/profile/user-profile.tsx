@@ -22,6 +22,13 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   } | null>(null);
   const [loadingVault, setLoadingVault] = useState(false);
 
+  // Debug logging
+  console.log("UserProfileComponent - user.pass:", user.pass);
+  console.log(
+    "UserProfileComponent - user.passSalesStats:",
+    user.passSalesStats
+  );
+
   const loadVaultBalance = useCallback(async () => {
     if (user.pass && user.pass.vault_address) {
       setLoadingVault(true);
@@ -91,6 +98,24 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
                 ${user.pass.price.toFixed(2)}
               </p>
             </div>
+          )}
+
+          {user.pass && (
+            <>
+              <div className="bg-orange-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform -rotate-1">
+                <h3 className="font-extrabold text-sm">Passes Sold</h3>
+                <p className="text-2xl font-black">
+                  {user.passSalesStats?.totalPassesSold ?? 0}
+                </p>
+              </div>
+
+              <div className="bg-pink-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform rotate-1">
+                <h3 className="font-extrabold text-sm">Unique Holders</h3>
+                <p className="text-2xl font-black">
+                  {user.passSalesStats?.uniqueHolders ?? 0}
+                </p>
+              </div>
+            </>
           )}
         </div>
 
@@ -166,7 +191,6 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
           </div>
         )}
 
-        {/* Claims Section - Only show if user has a pass */}
         {user.pass && vaultInfo && (
           <div className="mt-6">
             <ClaimsSection

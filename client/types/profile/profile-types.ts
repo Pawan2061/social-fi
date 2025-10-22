@@ -14,6 +14,10 @@ export interface UserProfile {
   passes?: UserPassOwnership[];
   Widget: unknown[];
   ownsPass?: boolean;
+  passSalesStats?: {
+    totalPassesSold: number;
+    uniqueHolders: number;
+  };
 }
 
 export interface UserPass {

@@ -15,18 +15,18 @@ export default function Navbar() {
         </Link>
 
         <nav className="hidden md:flex items-center space-x-6">
-          <Link
+          {/* <Link
             href="/feed"
             className="text-gray-700 hover:text-blue-600 font-medium"
           >
             Feed
-          </Link>
-          <Link
+          </Link> */}
+          {/* <Link
             href="/claims"
             className="text-gray-700 hover:text-blue-600 font-medium"
           >
             Claims
-          </Link>
+          </Link> */}
           {/* <Link
             href="/test-claims"
             className="text-gray-700 hover:text-blue-600 font-medium"

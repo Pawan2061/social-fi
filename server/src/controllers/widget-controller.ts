@@ -4,6 +4,54 @@ import { AuthRequest } from "../middleware/auth-middleware";
 import { CreateWidgetInput } from "../zod/widget-poll-schema";
 import { resolveMediaUrl } from "../lib/image-helper";
 
+// Helper function to check and update widget statuses
+async function updateWidgetStatuses() {
+  const now = new Date();
+
+  // Get all active widgets
+  const activeWidgets = await prisma.widget.findMany({
+    where: {
+      status: "ACTIVE",
+      type: "GOAL",
+    },
+  });
+
+  for (const widget of activeWidgets) {
+    let newStatus = widget.status;
+    let currentValue = widget.currentValue || 0;
+
+    if (widget.metric === "PASS_COUNT") {
+      currentValue = await prisma.ownership.count({
+        where: {
+          creatorId: widget.creatorId,
+          createdAt: { gte: widget.createdAt },
+        },
+      });
+    }
+
+    if (widget.targetValue && currentValue >= widget.targetValue) {
+      newStatus = "COMPLETED";
+    } else if (widget.expiresAt && now > widget.expiresAt) {
+      newStatus = "FAILED";
+    }
+
+    if (newStatus !== widget.status) {
+      await prisma.widget.update({
+        where: { id: widget.id },
+        data: {
+          status: newStatus,
+          currentValue: currentValue,
+        },
+      });
+    } else if (currentValue !== widget.currentValue) {
+      await prisma.widget.update({
+        where: { id: widget.id },
+        data: { currentValue: currentValue },
+      });
+    }
+  }
+}
+
 export const createWidget = async (req: AuthRequest, res: Response) => {
   try {
     const body: CreateWidgetInput = req.body;
@@ -36,9 +84,8 @@ export const createWidget = async (req: AuthRequest, res: Response) => {
 
     let currentValue: number | null = null;
     if (type === "GOAL" && metric === "PASS_COUNT") {
-      currentValue = await prisma.ownership.count({
-        where: { creatorId },
-      });
+      // For new widgets, start with 0 passes sold
+      currentValue = 0;
     }
 
     const widget = await prisma.widget.create({
@@ -55,10 +102,10 @@ export const createWidget = async (req: AuthRequest, res: Response) => {
         pollOptions:
           type === "POLL" && pollOptions?.length
             ? {
-              create: pollOptions.map((p) => ({
-                text: p.text,
-              })),
-            }
+                create: pollOptions.map((p) => ({
+                  text: p.text,
+                })),
+              }
             : undefined,
       },
       include: {
@@ -84,6 +131,9 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
+    // Update widget statuses before fetching
+    await updateWidgetStatuses();
+
     const ownerships = await prisma.ownership.findMany({
       where: { userId },
       select: { creatorId: true },
@@ -93,8 +143,6 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
       return res
         .status(200)
         .json({ message: "You haven't bought any passes", widgets: [] });
-
-
 
     const creatorIds = ownerships.map((o) => o.creatorId);
     if (creatorIds.length === 0) return res.status(200).json([]);
@@ -123,7 +171,7 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
       where: { creatorId: { in: creatorIds } },
     });
 
-    const passCountMap = Object.fromEntries(
+    const creatorPassCountMap = Object.fromEntries(
       creatorPassCounts.map((c) => [c.creatorId, c._count])
     );
 
@@ -134,13 +182,33 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
 
     const voteMap = new Map(userVotes.map((v) => [v.widgetId, v.optionId]));
 
+    // Get pass counts for each widget from their creation time
+    const widgetPassCounts = await Promise.all(
+      widgets.map(async (w) => {
+        if (w.type === "GOAL" && w.metric === "PASS_COUNT") {
+          const count = await prisma.ownership.count({
+            where: {
+              creatorId: w.creatorId,
+              createdAt: { gte: w.createdAt },
+            },
+          });
+          return { widgetId: w.id, count };
+        }
+        return { widgetId: w.id, count: w.currentValue || 0 };
+      })
+    );
+
+    const passCountMap = Object.fromEntries(
+      widgetPassCounts.map((w) => [w.widgetId, w.count])
+    );
+
     const widgetsWithDetails = widgets.map((w) => {
       const isGoal = w.type === "GOAL";
       const isPoll = w.type === "POLL";
       let currentValue = w.currentValue;
 
       if (isGoal && w.metric === "PASS_COUNT") {
-        currentValue = passCountMap[w.creatorId] || 0;
+        currentValue = passCountMap[w.id] || 0;
       }
 
       const progress =
@@ -155,6 +223,7 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
         description: w.description,
         createdAt: w.createdAt,
         expiresAt: w.expiresAt,
+        status: w.status,
         targetValue: isGoal ? w.targetValue : undefined,
         metric: isGoal ? w.metric : undefined,
         currentValue: isGoal ? currentValue : undefined,
@@ -185,6 +254,9 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
 
     const id = parseInt(widgetId, 10);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid widget ID" });
+
+    // Update widget statuses before fetching
+    await updateWidgetStatuses();
 
     const widget = await prisma.widget.findUnique({
       where: { id },
@@ -225,8 +297,12 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
     let progress: number | null = null;
 
     if (widget.type === "GOAL" && widget.metric === "PASS_COUNT") {
+      // Count pass sales from the time this specific widget was created
       currentValue = await prisma.ownership.count({
-        where: { creatorId: widget.creatorId },
+        where: {
+          creatorId: widget.creatorId,
+          createdAt: { gte: widget.createdAt },
+        },
       });
 
       progress = widget.targetValue
@@ -238,6 +314,7 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
       ...widget,
       currentValue,
       progress: progress ? Math.round(progress) : 0,
+      status: widget.status,
       hasVoted: widget.type === "POLL" ? hasVoted : undefined,
       votedOptionId: widget.type === "POLL" ? votedOptionId : undefined,
       creator: {
