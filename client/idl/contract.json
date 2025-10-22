@@ -9,7 +9,16 @@
   "instructions": [
     {
       "name": "cancel_claim",
-      "discriminator": [179, 1, 212, 49, 81, 144, 221, 140],
+      "discriminator": [
+        179,
+        1,
+        212,
+        49,
+        81,
+        144,
+        221,
+        140
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -22,14 +31,25 @@
         {
           "name": "creator",
           "signer": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         }
       ],
       "args": []
     },
     {
       "name": "change_vote",
-      "discriminator": [184, 39, 97, 137, 83, 108, 185, 75],
+      "discriminator": [
+        184,
+        39,
+        97,
+        137,
+        83,
+        108,
+        185,
+        75
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -38,7 +58,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "vote_account",
@@ -47,7 +69,9 @@
         {
           "name": "voter",
           "signer": true,
-          "relations": ["vote_account"]
+          "relations": [
+            "vote_account"
+          ]
         }
       ],
       "args": [
@@ -63,7 +87,16 @@
     },
     {
       "name": "create_pool",
-      "discriminator": [233, 146, 209, 142, 207, 104, 64, 188],
+      "discriminator": [
+        233,
+        146,
+        209,
+        142,
+        207,
+        104,
+        64,
+        188
+      ],
       "accounts": [
         {
           "name": "creator_pool",
@@ -73,7 +106,18 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 112, 111, 111, 108
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
                 ]
               },
               {
@@ -95,7 +139,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [115, 111, 108, 95, 118, 97, 117, 108, 116]
+                "value": [
+                  115,
+                  111,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -125,7 +179,16 @@
     },
     {
       "name": "deposit_from_nft_sale",
-      "discriminator": [143, 186, 40, 35, 47, 158, 33, 222],
+      "discriminator": [
+        143,
+        186,
+        40,
+        35,
+        47,
+        158,
+        33,
+        222
+      ],
       "accounts": [
         {
           "name": "creator_pool",
@@ -135,7 +198,18 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 112, 111, 111, 108
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
                 ]
               },
               {
@@ -157,7 +231,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [115, 111, 108, 95, 118, 97, 117, 108, 116]
+                "value": [
+                  115,
+                  111,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -191,7 +275,16 @@
     },
     {
       "name": "deposit_to_pool",
-      "discriminator": [99, 136, 15, 66, 85, 146, 24, 89],
+      "discriminator": [
+        99,
+        136,
+        15,
+        66,
+        85,
+        146,
+        24,
+        89
+      ],
       "accounts": [
         {
           "name": "creator_pool",
@@ -201,7 +294,18 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 112, 111, 111, 108
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
                 ]
               },
               {
@@ -234,7 +338,16 @@
     },
     {
       "name": "distribute_to_nft_holder",
-      "discriminator": [89, 164, 109, 128, 173, 75, 239, 124],
+      "discriminator": [
+        89,
+        164,
+        109,
+        128,
+        173,
+        75,
+        239,
+        124
+      ],
       "accounts": [
         {
           "name": "creator_pool",
@@ -244,7 +357,18 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 112, 111, 111, 108
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
                 ]
               },
               {
@@ -262,7 +386,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [115, 111, 108, 95, 118, 97, 117, 108, 116]
+                "value": [
+                  115,
+                  111,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -290,7 +424,16 @@
     },
     {
       "name": "file_claim",
-      "discriminator": [187, 254, 40, 13, 146, 223, 230, 97],
+      "discriminator": [
+        187,
+        254,
+        40,
+        13,
+        146,
+        223,
+        230,
+        97
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -299,7 +442,13 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [99, 108, 97, 105, 109]
+                "value": [
+                  99,
+                  108,
+                  97,
+                  105,
+                  109
+                ]
               },
               {
                 "kind": "arg",
@@ -354,7 +503,16 @@
     },
     {
       "name": "finalize_claim",
-      "discriminator": [86, 162, 202, 241, 136, 125, 52, 149],
+      "discriminator": [
+        86,
+        162,
+        202,
+        241,
+        136,
+        125,
+        52,
+        149
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -363,7 +521,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "factory"
@@ -373,7 +533,16 @@
     },
     {
       "name": "finalize_claim_with_distribution",
-      "discriminator": [162, 152, 173, 229, 120, 228, 210, 247],
+      "discriminator": [
+        162,
+        152,
+        173,
+        229,
+        120,
+        228,
+        210,
+        247
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -382,7 +551,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "creator_pool_vault",
@@ -391,7 +562,17 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [115, 111, 108, 95, 118, 97, 117, 108, 116]
+                "value": [
+                  115,
+                  111,
+                  108,
+                  95,
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
               },
               {
                 "kind": "account",
@@ -422,7 +603,16 @@
     },
     {
       "name": "initialize_factory",
-      "discriminator": [179, 64, 75, 250, 39, 254, 240, 178],
+      "discriminator": [
+        179,
+        64,
+        75,
+        250,
+        39,
+        254,
+        240,
+        178
+      ],
       "accounts": [
         {
           "name": "factory",
@@ -431,7 +621,15 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [102, 97, 99, 116, 111, 114, 121]
+                "value": [
+                  102,
+                  97,
+                  99,
+                  116,
+                  111,
+                  114,
+                  121
+                ]
               }
             ]
           }
@@ -466,7 +664,16 @@
     },
     {
       "name": "payout_claim",
-      "discriminator": [245, 117, 170, 236, 236, 239, 99, 252],
+      "discriminator": [
+        245,
+        117,
+        170,
+        236,
+        236,
+        239,
+        99,
+        252
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -475,7 +682,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "creator",
@@ -499,7 +708,16 @@
     },
     {
       "name": "refund_claim",
-      "discriminator": [157, 23, 164, 146, 176, 53, 147, 143],
+      "discriminator": [
+        157,
+        23,
+        164,
+        146,
+        176,
+        53,
+        147,
+        143
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -508,7 +726,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "creator_pool_vault",
@@ -519,7 +739,16 @@
     },
     {
       "name": "verify_fan_pass",
-      "discriminator": [175, 248, 208, 145, 40, 42, 123, 99],
+      "discriminator": [
+        175,
+        248,
+        208,
+        145,
+        40,
+        42,
+        123,
+        99
+      ],
       "accounts": [
         {
           "name": "fan",
@@ -535,8 +764,24 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 99, 111, 108, 108, 101,
-                  99, 116, 105, 111, 110
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  99,
+                  111,
+                  108,
+                  108,
+                  101,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
                 ]
               },
               {
@@ -553,7 +798,19 @@
               {
                 "kind": "const",
                 "value": [
-                  110, 102, 116, 95, 111, 119, 110, 101, 114, 115, 104, 105, 112
+                  110,
+                  102,
+                  116,
+                  95,
+                  111,
+                  119,
+                  110,
+                  101,
+                  114,
+                  115,
+                  104,
+                  105,
+                  112
                 ]
               },
               {
@@ -568,7 +825,16 @@
     },
     {
       "name": "vote",
-      "discriminator": [227, 110, 155, 23, 136, 126, 172, 25],
+      "discriminator": [
+        227,
+        110,
+        155,
+        23,
+        136,
+        126,
+        172,
+        25
+      ],
       "accounts": [
         {
           "name": "claim",
@@ -577,7 +843,9 @@
         {
           "name": "creator_pool",
           "writable": true,
-          "relations": ["claim"]
+          "relations": [
+            "claim"
+          ]
         },
         {
           "name": "vote_account",
@@ -586,7 +854,12 @@
             "seeds": [
               {
                 "kind": "const",
-                "value": [118, 111, 116, 101]
+                "value": [
+                  118,
+                  111,
+                  116,
+                  101
+                ]
               },
               {
                 "kind": "account",
@@ -622,7 +895,16 @@
     },
     {
       "name": "withdraw_from_pool",
-      "discriminator": [62, 33, 128, 81, 40, 234, 29, 77],
+      "discriminator": [
+        62,
+        33,
+        128,
+        81,
+        40,
+        234,
+        29,
+        77
+      ],
       "accounts": [
         {
           "name": "creator_pool",
@@ -632,7 +914,18 @@
               {
                 "kind": "const",
                 "value": [
-                  99, 114, 101, 97, 116, 111, 114, 95, 112, 111, 111, 108
+                  99,
+                  114,
+                  101,
+                  97,
+                  116,
+                  111,
+                  114,
+                  95,
+                  112,
+                  111,
+                  111,
+                  108
                 ]
               },
               {
@@ -671,69 +964,213 @@
   "accounts": [
     {
       "name": "Claim",
-      "discriminator": [155, 70, 22, 176, 123, 215, 246, 102]
+      "discriminator": [
+        155,
+        70,
+        22,
+        176,
+        123,
+        215,
+        246,
+        102
+      ]
     },
     {
       "name": "CreatorCollection",
-      "discriminator": [74, 116, 99, 177, 6, 218, 176, 53]
+      "discriminator": [
+        74,
+        116,
+        99,
+        177,
+        6,
+        218,
+        176,
+        53
+      ]
     },
     {
       "name": "CreatorPool",
-      "discriminator": [9, 145, 89, 211, 0, 62, 114, 107]
+      "discriminator": [
+        9,
+        145,
+        89,
+        211,
+        0,
+        62,
+        114,
+        107
+      ]
     },
     {
       "name": "Factory",
-      "discriminator": [159, 68, 192, 61, 48, 249, 216, 202]
+      "discriminator": [
+        159,
+        68,
+        192,
+        61,
+        48,
+        249,
+        216,
+        202
+      ]
     },
     {
       "name": "NftOwnership",
-      "discriminator": [0, 104, 162, 76, 192, 61, 223, 1]
+      "discriminator": [
+        0,
+        104,
+        162,
+        76,
+        192,
+        61,
+        223,
+        1
+      ]
     },
     {
       "name": "VoteAccount",
-      "discriminator": [203, 238, 154, 106, 200, 131, 0, 41]
+      "discriminator": [
+        203,
+        238,
+        154,
+        106,
+        200,
+        131,
+        0,
+        41
+      ]
     }
   ],
   "events": [
     {
       "name": "ClaimCanceled",
-      "discriminator": [226, 151, 214, 8, 94, 237, 233, 129]
+      "discriminator": [
+        226,
+        151,
+        214,
+        8,
+        94,
+        237,
+        233,
+        129
+      ]
     },
     {
       "name": "ClaimFiled",
-      "discriminator": [78, 228, 214, 247, 197, 67, 130, 19]
+      "discriminator": [
+        78,
+        228,
+        214,
+        247,
+        197,
+        67,
+        130,
+        19
+      ]
     },
     {
       "name": "ClaimFinalized",
-      "discriminator": [36, 70, 215, 110, 63, 54, 124, 118]
+      "discriminator": [
+        36,
+        70,
+        215,
+        110,
+        63,
+        54,
+        124,
+        118
+      ]
     },
     {
       "name": "CreatorPoolCreated",
-      "discriminator": [131, 227, 72, 20, 118, 142, 230, 227]
+      "discriminator": [
+        131,
+        227,
+        72,
+        20,
+        118,
+        142,
+        230,
+        227
+      ]
     },
     {
       "name": "FactoryInitialized",
-      "discriminator": [20, 86, 103, 75, 20, 220, 162, 63]
+      "discriminator": [
+        20,
+        86,
+        103,
+        75,
+        20,
+        220,
+        162,
+        63
+      ]
     },
     {
       "name": "NftOwnershipVerified",
-      "discriminator": [130, 147, 2, 63, 240, 126, 137, 63]
+      "discriminator": [
+        130,
+        147,
+        2,
+        63,
+        240,
+        126,
+        137,
+        63
+      ]
     },
     {
       "name": "NftSaleRevenueDistributed",
-      "discriminator": [223, 177, 132, 220, 65, 45, 175, 36]
+      "discriminator": [
+        223,
+        177,
+        132,
+        220,
+        65,
+        45,
+        175,
+        36
+      ]
     },
     {
       "name": "PayoutSent",
-      "discriminator": [118, 83, 220, 84, 61, 77, 124, 10]
+      "discriminator": [
+        118,
+        83,
+        220,
+        84,
+        61,
+        77,
+        124,
+        10
+      ]
     },
     {
       "name": "RefundDistributed",
-      "discriminator": [139, 10, 117, 69, 76, 117, 233, 10]
+      "discriminator": [
+        139,
+        10,
+        117,
+        69,
+        76,
+        117,
+        233,
+        10
+      ]
     },
     {
       "name": "VoteCast",
-      "discriminator": [39, 53, 195, 104, 188, 17, 225, 213]
+      "discriminator": [
+        39,
+        53,
+        195,
+        104,
+        188,
+        17,
+        225,
+        213
+      ]
     }
   ],
   "errors": [

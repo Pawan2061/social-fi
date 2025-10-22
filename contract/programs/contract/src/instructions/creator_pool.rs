@@ -23,7 +23,8 @@ pub struct CreateCreatorPool<'info> {
         payer = creator,
         space = 0, // Native SOL account needs no space
         seeds = [b"sol_vault", creator.key().as_ref()],
-        bump
+        bump,
+        owner = crate::ID
     )]
     pub sol_vault: AccountInfo<'info>,
 

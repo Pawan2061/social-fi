@@ -125,7 +125,8 @@ pub struct FinalizeClaimWithDistribution<'info> {
     #[account(
         mut,
         seeds = [b"sol_vault", creator_pool.creator.as_ref()],
-        bump
+        bump,
+        owner = crate::ID
     )]
     pub creator_pool_vault: AccountInfo<'info>,
 
@@ -154,7 +155,8 @@ pub struct DistributeToNftHolder<'info> {
     #[account(
         mut,
         seeds = [b"sol_vault", creator_pool.creator.as_ref()],
-        bump
+        bump,
+        owner = crate::ID
     )]
     pub sol_vault: AccountInfo<'info>,
 
@@ -179,6 +181,8 @@ pub enum ErrorCode {
     InsufficientFunds,
     #[msg("Invalid CreatorPool address provided")]
     InvalidCreatorPoolAddress,
+    #[msg("Invalid vault account provided")]
+    InvalidVaultAccount,
 }
 
 pub fn file_claim(

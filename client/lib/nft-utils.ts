@@ -1634,23 +1634,37 @@ export async function finalizeClaimWithDistributionOnChain(
 
     const factoryAddress = generateFactoryAddress();
 
-    // Use the SOL vault PDA as the source and creator's wallet as destination
+    // Generate the correct SOL vault PDA address
+    const correctVaultAddress = generateSolVaultAddress(
+      wallet.publicKey.toBase58()
+    );
+    console.log("🔧 Generated correct SOL vault PDA:", correctVaultAddress);
+    console.log("🔍 Provided vault address:", vaultAddress);
+
+    // Use the correct SOL vault PDA as the source and creator's wallet as destination
     const creatorUsdcAccount = wallet.publicKey;
 
-    let vaultBalance = 0;
-    try {
-      const vaultAccount = await connection.getAccountInfo(
-        new PublicKey(vaultAddress)
+    // Check if the correct vault exists
+    const vaultAccount = await connection.getAccountInfo(
+      new PublicKey(correctVaultAddress)
+    );
+
+    if (!vaultAccount) {
+      throw new Error(
+        `SOL vault PDA does not exist at ${correctVaultAddress}. ` +
+          `The creator pool was created without a vault. ` +
+          `Please recreate the creator pool with the updated contract that includes vault creation.`
       );
-      if (vaultAccount) {
-        // For native SOL vault, get the lamports
-        vaultBalance = vaultAccount.lamports;
-      }
-    } catch (error) {
-      console.log("⚠️ Could not get vault balance:", error);
     }
 
-    console.log("💰 Vault balance before transfer:", vaultBalance);
+    let vaultBalance = 0;
+    if (vaultAccount) {
+      // For native SOL vault, get the lamports
+      vaultBalance = vaultAccount.lamports;
+      console.log("💰 Vault balance before transfer:", vaultBalance);
+    } else {
+      throw new Error("Failed to create or access SOL vault PDA");
+    }
 
     // Call the program's finalize_claim_with_distribution instruction
     let tx = "fallback-transaction";
@@ -1660,7 +1674,7 @@ export async function finalizeClaimWithDistributionOnChain(
         .accounts({
           claim: new PublicKey(claimAddress),
           creatorPool: new PublicKey(creatorPoolAddress),
-          creatorPoolVault: new PublicKey(vaultAddress),
+          creatorPoolVault: new PublicKey(correctVaultAddress), // Use correct vault address
           creatorUsdcAccount: creatorUsdcAccount,
           creator: wallet.publicKey,
           factory: new PublicKey(factoryAddress),
@@ -1674,8 +1688,11 @@ export async function finalizeClaimWithDistributionOnChain(
         "❌ Error calling finalize_claim_with_distribution:",
         error
       );
-      // Fallback to manual transfer if program call fails
-      console.log("⚠️ Falling back to manual transfer");
+      throw new Error(
+        `On-chain finalization failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
     }
 
     return {
