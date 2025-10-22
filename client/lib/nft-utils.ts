@@ -135,23 +135,7 @@ async function findTokenAccountWithRetries(
   }
   return null;
 }
-export function generateCreatorPoolVaultAddress(
-  creatorPublicKey: string
-): string {
-  try {
-    const creatorKey = new PublicKey(creatorPublicKey);
-
-    const [vaultAddress] = PublicKey.findProgramAddressSync(
-      [Buffer.from("usdc_vault"), creatorKey.toBuffer()],
-      PROGRAM_ID
-    );
-
-    return vaultAddress.toString();
-  } catch (error) {
-    console.error("❌ Error generating vault address:", error);
-    throw new Error("Failed to generate creator pool vault address");
-  }
-}
+// This function is no longer used - vault addresses are now stored in the database
 
 export function generateCreatorPoolAddress(creatorPublicKey: string): string {
   try {
@@ -166,6 +150,22 @@ export function generateCreatorPoolAddress(creatorPublicKey: string): string {
   } catch (error) {
     console.error("❌ Error generating pool address:", error);
     throw new Error("Failed to generate creator pool address");
+  }
+}
+
+export function generateSolVaultAddress(creatorPublicKey: string): string {
+  try {
+    const creatorKey = new PublicKey(creatorPublicKey);
+
+    const [vaultAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("sol_vault"), creatorKey.toBuffer()],
+      PROGRAM_ID
+    );
+
+    return vaultAddress.toString();
+  } catch (error) {
+    console.error("❌ Error generating SOL vault address:", error);
+    throw new Error("Failed to generate SOL vault address");
   }
 }
 
@@ -324,9 +324,8 @@ export async function getVaultBalance(vaultAddress: string): Promise<number> {
   }
 }
 
-export async function getVaultInfo(creatorPublicKey: string) {
+export async function getVaultInfo(vaultAddress: string) {
   try {
-    const vaultAddress = generateCreatorPoolVaultAddress(creatorPublicKey);
     const balance = await getVaultBalance(vaultAddress);
 
     return {
@@ -352,7 +351,7 @@ export async function initializeFactory(
     signTransaction: (transaction: unknown) => Promise<unknown>;
   },
   defaultQuorum: number = 1,
-  defaultVotingWindow: number = 5 * 60,
+  defaultVotingWindow: number = 2 * 60, // 2 minutes
   platformFeePercentage: number = 5
 ): Promise<{
   factoryAddress: string;
@@ -435,36 +434,7 @@ export async function initializeFactory(
   }
 }
 
-export async function createCreatorPoolAddresses(creatorWallet: {
-  publicKey: { toBase58(): string };
-  signTransaction: (transaction: unknown) => Promise<unknown>;
-}): Promise<{
-  creatorPoolAddress: string;
-  vaultAddress: string;
-  transactionSignature: string;
-}> {
-  try {
-    const creatorPoolAddress = generateCreatorPoolAddress(
-      creatorWallet.publicKey.toBase58()
-    );
-    const vaultAddress = generateCreatorPoolVaultAddress(
-      creatorWallet.publicKey.toBase58()
-    );
-
-    return {
-      creatorPoolAddress,
-      vaultAddress,
-      transactionSignature: "dev-workaround-tx-signature",
-    };
-  } catch (error) {
-    console.error("❌ Error generating creator pool addresses:", error);
-    throw new Error(
-      `Failed to generate creator pool addresses: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`
-    );
-  }
-}
+// This function is no longer used - vault addresses are now generated during pool creation
 
 export async function createCreatorPoolOnChain(
   creatorWallet: {
@@ -472,7 +442,7 @@ export async function createCreatorPoolOnChain(
     signTransaction: (transaction: unknown) => Promise<unknown>;
   },
   votingQuorum: number = 0,
-  votingWindow: number = 5 * 60
+  votingWindow: number = 2 * 60 // 2 minutes
 ): Promise<{
   creatorPoolAddress: string;
   vaultAddress: string;
@@ -516,25 +486,12 @@ export async function createCreatorPoolOnChain(
     const creatorPoolAddress = generateCreatorPoolAddress(
       creatorWallet.publicKey.toBase58()
     );
-    const vaultAddress = generateCreatorPoolVaultAddress(
-      creatorWallet.publicKey.toBase58()
-    );
+    // const vaultAddress = generateCreatorPoolVaultAddress(
+    //   creatorWallet.publicKey.toBase58()
+    // );
     const factoryAddress = generateFactoryAddress();
 
-    const usdcMint = new PublicKey(
-      "So11111111111111111111111111111111111111112"
-    );
-
-    const tokenProgram = new PublicKey(
-      "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-    );
-
-    console.log("📋 Account addresses:", {
-      creatorPool: creatorPoolAddress,
-      vault: vaultAddress,
-      factory: factoryAddress,
-      usdcMint: usdcMint.toString(),
-    });
+    // No longer using USDC mint or token program for native SOL
 
     const factoryAccount = await connection.getAccountInfo(
       new PublicKey(factoryAddress)
@@ -542,7 +499,7 @@ export async function createCreatorPoolOnChain(
 
     if (!factoryAccount) {
       try {
-        await initializeFactory(creatorWallet, 1, 5 * 60, 5);
+        await initializeFactory(creatorWallet, 1, 2 * 60, 5); // 2 minutes
 
         const verifyFactory = await connection.getAccountInfo(
           new PublicKey(factoryAddress)
@@ -563,17 +520,21 @@ export async function createCreatorPoolOnChain(
         );
       }
     }
+    // Generate SOL vault PDA address
+    const vaultAddress = generateSolVaultAddress(
+      creatorWallet.publicKey.toBase58()
+    );
+    console.log("✅ Using SOL vault PDA:", vaultAddress);
+
     try {
       const tx = await program.methods
         .createPool(new anchor.BN(votingQuorum), new anchor.BN(votingWindow))
         .accounts({
           creatorPool: new PublicKey(creatorPoolAddress),
           creator: wallet.publicKey,
-          usdcMint: usdcMint,
-          usdcVault: new PublicKey(vaultAddress),
+          solVault: new PublicKey(vaultAddress), // Use SOL vault PDA
           factory: new PublicKey(factoryAddress),
           systemProgram: SystemProgram.programId,
-          tokenProgram: tokenProgram,
         })
         .rpc();
 
@@ -957,7 +918,7 @@ export async function buyCreatorPass(
     console.log("✅ NFT created for buyer:", nftMint.publicKey);
 
     console.log("🔍 Checking vault balance before transfer...");
-    const vaultInfoBefore = await getVaultInfo(passData.creatorPublicKey);
+    const vaultInfoBefore = await getVaultInfo(passData.vaultAddress);
     console.log("📊 Vault before transfer:", vaultInfoBefore);
 
     console.log("💰 Simulating revenue distribution...");
@@ -976,6 +937,8 @@ export async function buyCreatorPass(
 
     const transaction = new Transaction();
 
+    // For now, use direct transfers - the program instruction needs to be called by the creator
+    // This is a temporary solution until we implement proper program integration
     const vaultTransferInstruction = SystemProgram.transfer({
       fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
       toPubkey: new PublicKey(passData.vaultAddress),
@@ -1007,7 +970,7 @@ export async function buyCreatorPass(
     console.log("✅ Revenue distribution completed!");
     console.log("📋 Transaction signature:", signature);
 
-    const vaultInfoAfter = await getVaultInfo(passData.creatorPublicKey);
+    const vaultInfoAfter = await getVaultInfo(passData.vaultAddress);
 
     const vaultIncrease = vaultInfoAfter.balance - vaultInfoBefore.balance;
 
@@ -1670,52 +1633,67 @@ export async function finalizeClaimWithDistributionOnChain(
     const program = new Program(idl as any, provider);
 
     const factoryAddress = generateFactoryAddress();
-    const usdcMint = new PublicKey(
-      "So11111111111111111111111111111111111111112"
+
+    // Generate the correct SOL vault PDA address
+    const correctVaultAddress = generateSolVaultAddress(
+      wallet.publicKey.toBase58()
+    );
+    console.log("🔧 Generated correct SOL vault PDA:", correctVaultAddress);
+    console.log("🔍 Provided vault address:", vaultAddress);
+
+    // Use the correct SOL vault PDA as the source and creator's wallet as destination
+    const creatorUsdcAccount = wallet.publicKey;
+
+    // Check if the correct vault exists
+    const vaultAccount = await connection.getAccountInfo(
+      new PublicKey(correctVaultAddress)
     );
 
-    const creatorUsdcAccount = await getOrCreateTokenAccount(
-      connection,
-      wallet.publicKey,
-      usdcMint,
-      wallet.signTransaction as (
-        transaction: Transaction
-      ) => Promise<Transaction>
-    );
-
-    let vaultBalance = 0;
-    try {
-      const vaultAccount = await connection.getAccountInfo(
-        new PublicKey(vaultAddress)
+    if (!vaultAccount) {
+      throw new Error(
+        `SOL vault PDA does not exist at ${correctVaultAddress}. ` +
+          `The creator pool was created without a vault. ` +
+          `Please recreate the creator pool with the updated contract that includes vault creation.`
       );
-      if (vaultAccount) {
-        const vaultData = await program.coder.accounts.decode(
-          "TokenAccount",
-          vaultAccount.data
-        );
-        vaultBalance = vaultData.amount.toNumber();
-      }
-    } catch (error) {
-      console.log("⚠️ Could not get vault balance:", error);
     }
 
-    console.log("💰 Vault balance before transfer:", vaultBalance);
+    let vaultBalance = 0;
+    if (vaultAccount) {
+      // For native SOL vault, get the lamports
+      vaultBalance = vaultAccount.lamports;
+      console.log("💰 Vault balance before transfer:", vaultBalance);
+    } else {
+      throw new Error("Failed to create or access SOL vault PDA");
+    }
 
-    const tx = await program.methods
-      .finalizeClaimWithDistribution()
-      .accounts({
-        claim: new PublicKey(claimAddress),
-        creatorPool: new PublicKey(creatorPoolAddress),
-        creatorPoolVault: new PublicKey(vaultAddress),
-        creatorUsdcAccount: creatorUsdcAccount,
-        creator: wallet.publicKey,
-        usdcMint: usdcMint,
-        factory: new PublicKey(factoryAddress),
-        tokenProgram: new PublicKey(
-          "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
-        ),
-      })
-      .rpc();
+    // Call the program's finalize_claim_with_distribution instruction
+    let tx = "fallback-transaction";
+    try {
+      tx = await program.methods
+        .finalizeClaimWithDistribution()
+        .accounts({
+          claim: new PublicKey(claimAddress),
+          creatorPool: new PublicKey(creatorPoolAddress),
+          creatorPoolVault: new PublicKey(correctVaultAddress), // Use correct vault address
+          creatorUsdcAccount: creatorUsdcAccount,
+          creator: wallet.publicKey,
+          factory: new PublicKey(factoryAddress),
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+
+      console.log("✅ Claim finalized with distribution:", tx);
+    } catch (error) {
+      console.error(
+        "❌ Error calling finalize_claim_with_distribution:",
+        error
+      );
+      throw new Error(
+        `On-chain finalization failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
 
     return {
       transactionSignature: tx,

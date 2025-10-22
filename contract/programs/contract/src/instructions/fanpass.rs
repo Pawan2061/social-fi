@@ -14,27 +14,25 @@ pub struct DepositFromNftSale<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
+    /// CHECK: This is the SOL vault PDA
     #[account(
         mut,
-        seeds = [b"usdc_vault", creator.key().as_ref()],
+        seeds = [b"sol_vault", creator.key().as_ref()],
         bump
     )]
-    pub creator_pool_vault: Account<'info, anchor_spl::token::TokenAccount>,
+    pub sol_vault: AccountInfo<'info>,
 
+    /// CHECK: This is a regular account that can receive native SOL
     #[account(mut)]
-    pub creator_usdc_account: Account<'info, anchor_spl::token::TokenAccount>,
+    pub creator_wallet: AccountInfo<'info>,
 
+    /// CHECK: This is a regular account that can receive native SOL
     #[account(mut)]
-    pub platform_usdc_account: Account<'info, anchor_spl::token::TokenAccount>,
-
-    #[account(mut)]
-    pub from_token_account: Account<'info, anchor_spl::token::TokenAccount>,
-
-    pub usdc_mint: Account<'info, anchor_spl::token::Mint>,
+    pub platform_wallet: AccountInfo<'info>,
 
     pub factory: Account<'info, Factory>,
 
-    pub token_program: Program<'info, anchor_spl::token::Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -61,47 +59,61 @@ pub fn deposit_from_nft_sale(ctx: Context<DepositFromNftSale>, total_amount: u64
     let factory = &ctx.accounts.factory;
 
     let platform_fee = (total_amount * factory.platform_fee_percentage) / 100;
-    let creator_pool_amount = (total_amount * 70) / 100;
-    let creator_amount = total_amount - platform_fee - creator_pool_amount;
+    let vault_amount = (total_amount * 70) / 100; // 70% to vault
+    let creator_amount = total_amount - platform_fee - vault_amount;
 
-    let cpi_accounts_pool = anchor_spl::token::Transfer {
-        from: ctx.accounts.from_token_account.to_account_info(),
-        to: ctx.accounts.creator_pool_vault.to_account_info(),
-        authority: ctx.accounts.creator.to_account_info(),
-    };
+    // Transfer to SOL vault using PDA authority
+    let vault_bump = ctx.bumps.sol_vault;
+    let vault_seeds = &[b"sol_vault", creator_pool.creator.as_ref(), &[vault_bump]];
+    let signer = &[&vault_seeds[..]];
 
-    let cpi_program = ctx.accounts.token_program.to_account_info();
-    let cpi_ctx_pool = CpiContext::new(cpi_program.clone(), cpi_accounts_pool);
-    anchor_spl::token::transfer(cpi_ctx_pool, creator_pool_amount)?;
+    // Transfer to vault (locked until claim resolution)
+    anchor_lang::system_program::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.creator.to_account_info(),
+                to: ctx.accounts.sol_vault.to_account_info(),
+            },
+            signer,
+        ),
+        vault_amount,
+    )?;
 
-    let cpi_accounts_creator = anchor_spl::token::Transfer {
-        from: ctx.accounts.from_token_account.to_account_info(),
-        to: ctx.accounts.creator_usdc_account.to_account_info(),
-        authority: ctx.accounts.creator.to_account_info(),
-    };
+    // Transfer to creator (immediate)
+    anchor_lang::system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.creator.to_account_info(),
+                to: ctx.accounts.creator_wallet.to_account_info(),
+            },
+        ),
+        creator_amount,
+    )?;
 
-    let cpi_ctx_creator = CpiContext::new(cpi_program.clone(), cpi_accounts_creator);
-    anchor_spl::token::transfer(cpi_ctx_creator, creator_amount)?;
-
-    let cpi_accounts_platform = anchor_spl::token::Transfer {
-        from: ctx.accounts.from_token_account.to_account_info(),
-        to: ctx.accounts.platform_usdc_account.to_account_info(),
-        authority: ctx.accounts.creator.to_account_info(),
-    };
-
-    let cpi_ctx_platform = CpiContext::new(cpi_program, cpi_accounts_platform);
-    anchor_spl::token::transfer(cpi_ctx_platform, platform_fee)?;
+    // Transfer to platform
+    anchor_lang::system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.creator.to_account_info(),
+                to: ctx.accounts.platform_wallet.to_account_info(),
+            },
+        ),
+        platform_fee,
+    )?;
 
     creator_pool.total_deposited = creator_pool
         .total_deposited
-        .checked_add(creator_pool_amount)
+        .checked_add(vault_amount)
         .ok_or(ErrorCode::MathOverflow)?;
 
     emit!(NftSaleRevenueDistributed {
         creator: creator_pool.creator,
         creator_pool: ctx.accounts.creator_pool.key(),
         total_amount,
-        creator_pool_amount,
+        creator_pool_amount: vault_amount,
         creator_amount,
         platform_fee,
     });

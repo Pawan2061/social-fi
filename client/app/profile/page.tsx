@@ -104,7 +104,10 @@ export default function ProfilePage() {
           progress: undefined,
         };
       })
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
   }, [userProfile]);
 
   if (isLoading) {
@@ -195,8 +198,9 @@ export default function ProfilePage() {
 
         {activeTab === "posts" ? (
           <>
-            {(userProfile.posts ?? []).filter((p) => !p.media?.some((m) => m.locked))
-              .length > 0 ? (
+            {(userProfile.posts ?? []).filter(
+              (p) => !p.media?.some((m) => m.locked)
+            ).length > 0 ? (
               <div className="space-y-8">
                 <div className="text-center">
                   <h2 className="text-3xl font-black mb-2 transform rotate-1 inline-block bg-blue-300 border-4 border-black px-6 py-2 shadow-[8px_8px_0_0_#000]">
@@ -236,7 +240,8 @@ export default function ProfilePage() {
                           const supportedMedia =
                             post.media?.filter(
                               (media) =>
-                                (media.type === "image" || media.type === "video") &&
+                                (media.type === "image" ||
+                                  media.type === "video") &&
                                 !media.locked
                             ) || [];
 
@@ -299,7 +304,9 @@ export default function ProfilePage() {
             ) : (
               <div className="text-center py-12">
                 <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
-                  <h3 className="font-extrabold text-xl mb-2">No Widgets Yet</h3>
+                  <h3 className="font-extrabold text-xl mb-2">
+                    No Widgets Yet
+                  </h3>
                   <p className="text-gray-600 font-bold">
                     Create a goal or a poll to engage your community.
                   </p>

@@ -1,7 +1,7 @@
 use crate::events::{ClaimCanceled, ClaimFiled, ClaimFinalized, PayoutSent, RefundDistributed};
 use crate::state::{Claim, CreatorPool, Factory};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+// No longer using SPL tokens
 
 #[derive(Accounts)]
 #[instruction(evidence_ipfs_hash: String, claim_count: u64, creator_pool_address: Pubkey)]
@@ -21,17 +21,15 @@ pub struct FileClaim<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_usdc_account: Account<'info, TokenAccount>,
+    pub creator_usdc_account: AccountInfo<'info>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_pool_vault: Account<'info, TokenAccount>,
-
-    pub usdc_mint: Account<'info, token::Mint>,
+    pub creator_pool_vault: AccountInfo<'info>,
 
     pub factory: Account<'info, Factory>,
-
-    pub token_program: Program<'info, Token>,
 
     pub system_program: Program<'info, System>,
 }
@@ -82,15 +80,15 @@ pub struct PayoutClaim<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_usdc_account: Account<'info, TokenAccount>,
+    pub creator_usdc_account: AccountInfo<'info>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_pool_vault: Account<'info, TokenAccount>,
+    pub creator_pool_vault: AccountInfo<'info>,
 
-    pub usdc_mint: Account<'info, token::Mint>,
-
-    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -105,12 +103,9 @@ pub struct RefundClaim<'info> {
     #[account(mut)]
     pub creator_pool: Account<'info, CreatorPool>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_pool_vault: Account<'info, TokenAccount>,
-
-    pub usdc_mint: Account<'info, token::Mint>,
-
-    pub token_program: Program<'info, Token>,
+    pub creator_pool_vault: AccountInfo<'info>,
 }
 
 #[derive(Accounts)]
@@ -126,20 +121,50 @@ pub struct FinalizeClaimWithDistribution<'info> {
     #[account(mut)]
     pub creator_pool: Account<'info, CreatorPool>,
 
-    #[account(mut)]
-    pub creator_pool_vault: Account<'info, TokenAccount>,
+    /// CHECK: This is the SOL vault PDA
+    #[account(
+        mut,
+        seeds = [b"sol_vault", creator_pool.creator.as_ref()],
+        bump,
+        owner = crate::ID
+    )]
+    pub creator_pool_vault: AccountInfo<'info>,
 
+    /// CHECK: This is a regular account that can hold native SOL
     #[account(mut)]
-    pub creator_usdc_account: Account<'info, TokenAccount>,
+    pub creator_usdc_account: AccountInfo<'info>,
 
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    pub usdc_mint: Account<'info, token::Mint>,
-
     pub factory: Account<'info, Factory>,
 
-    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct DistributeToNftHolder<'info> {
+    #[account(
+        mut,
+        seeds = [b"creator_pool", creator_pool.creator.as_ref()],
+        bump = creator_pool.bump
+    )]
+    pub creator_pool: Account<'info, CreatorPool>,
+
+    /// CHECK: This is the SOL vault PDA
+    #[account(
+        mut,
+        seeds = [b"sol_vault", creator_pool.creator.as_ref()],
+        bump,
+        owner = crate::ID
+    )]
+    pub sol_vault: AccountInfo<'info>,
+
+    /// CHECK: This is a regular account that can receive native SOL
+    #[account(mut)]
+    pub nft_holder: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[error_code]
@@ -156,6 +181,8 @@ pub enum ErrorCode {
     InsufficientFunds,
     #[msg("Invalid CreatorPool address provided")]
     InvalidCreatorPoolAddress,
+    #[msg("Invalid vault account provided")]
+    InvalidVaultAccount,
 }
 
 pub fn file_claim(
@@ -186,7 +213,8 @@ pub fn file_claim(
     let claim = &mut ctx.accounts.claim;
     let creator_pool = &mut ctx.accounts.creator_pool;
 
-    let pool_balance = ctx.accounts.creator_pool_vault.amount;
+    // For native SOL vault, get the lamports
+    let pool_balance = ctx.accounts.creator_pool_vault.lamports();
 
     claim.creator_pool = creator_pool.key();
     claim.creator = ctx.accounts.creator.key();
@@ -276,29 +304,23 @@ pub fn payout_claim(ctx: Context<PayoutClaim>) -> Result<()> {
     let claim = &mut ctx.accounts.claim;
     let creator_pool = &mut ctx.accounts.creator_pool;
 
-    let payout_amount = ctx.accounts.creator_pool_vault.amount;
+    // For native SOL vault, get the lamports
+    let payout_amount = ctx.accounts.creator_pool_vault.lamports();
 
     require!(payout_amount > 0, ErrorCode::InsufficientFunds);
 
-    let pool_bump = creator_pool.bump;
-    let creator_key = claim.creator;
-
-    let cpi_accounts = Transfer {
-        from: ctx.accounts.creator_pool_vault.to_account_info(),
-        to: ctx.accounts.creator_usdc_account.to_account_info(),
-        authority: creator_pool.to_account_info(),
-    };
-
-    let seeds = &[b"creator_pool", creator_key.as_ref(), &[pool_bump]];
-    let signer = &[&seeds[..]];
-
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info(),
-        cpi_accounts,
-        signer,
-    );
-
-    token::transfer(cpi_ctx, payout_amount)?;
+    // Native SOL transfer - creator must sign the transaction
+    // The vault is owned by the creator, so they can transfer from it
+    anchor_lang::system_program::transfer(
+        CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.creator_pool_vault.to_account_info(),
+                to: ctx.accounts.creator_usdc_account.to_account_info(),
+            },
+        ),
+        payout_amount,
+    )?;
 
     creator_pool.total_withdrawn = creator_pool
         .total_withdrawn
@@ -321,7 +343,8 @@ pub fn refund_claim(ctx: Context<RefundClaim>) -> Result<()> {
     let claim = &mut ctx.accounts.claim;
     let _creator_pool = &mut ctx.accounts.creator_pool;
 
-    let refund_amount = ctx.accounts.creator_pool_vault.amount;
+    // For native SOL vault, get the lamports
+    let refund_amount = ctx.accounts.creator_pool_vault.lamports();
 
     require!(refund_amount > 0, ErrorCode::InsufficientFunds);
 
@@ -351,32 +374,30 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
         ErrorCode::InsufficientVotes
     );
 
-    let payout_amount = ctx.accounts.creator_pool_vault.amount;
+    // For native SOL vault, get the lamports
+    let payout_amount = ctx.accounts.creator_pool_vault.lamports();
     require!(payout_amount > 0, ErrorCode::InsufficientFunds);
 
     if claim.yes_votes > claim.no_votes {
-        // Claim approved - transfer funds to creator
+        // Claim approved - transfer funds from vault to creator
         claim.status = crate::state::ClaimStatus::Approved;
 
-        let pool_bump = creator_pool.bump;
-        let creator_key = claim.creator;
+        // Transfer from SOL vault using PDA authority
+        let vault_bump = ctx.bumps.creator_pool_vault;
+        let vault_seeds = &[b"sol_vault", creator_pool.creator.as_ref(), &[vault_bump]];
+        let signer = &[&vault_seeds[..]];
 
-        let cpi_accounts = Transfer {
-            from: ctx.accounts.creator_pool_vault.to_account_info(),
-            to: ctx.accounts.creator_usdc_account.to_account_info(),
-            authority: creator_pool.to_account_info(),
-        };
-
-        let seeds = &[b"creator_pool", creator_key.as_ref(), &[pool_bump]];
-        let signer = &[&seeds[..]];
-
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            cpi_accounts,
-            signer,
-        );
-
-        token::transfer(cpi_ctx, payout_amount)?;
+        anchor_lang::system_program::transfer(
+            CpiContext::new_with_signer(
+                ctx.accounts.system_program.to_account_info(),
+                anchor_lang::system_program::Transfer {
+                    from: ctx.accounts.creator_pool_vault.to_account_info(),
+                    to: ctx.accounts.creator_usdc_account.to_account_info(),
+                },
+                signer,
+            ),
+            payout_amount,
+        )?;
 
         creator_pool.total_withdrawn = creator_pool
             .total_withdrawn
@@ -392,7 +413,7 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
             payout_amount,
         });
     } else {
-        // Claim rejected - set status to refunded (backend will handle distribution to NFT holders)
+        // Claim rejected - funds stay in vault for NFT holder distribution
         claim.status = crate::state::ClaimStatus::Refunded;
 
         emit!(RefundDistributed {
@@ -416,6 +437,30 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
             _ => "Unknown".to_string(),
         },
     });
+
+    Ok(())
+}
+
+pub fn distribute_to_nft_holder(ctx: Context<DistributeToNftHolder>, amount: u64) -> Result<()> {
+    let vault_bump = ctx.bumps.sol_vault;
+    let vault_seeds = &[
+        b"sol_vault",
+        ctx.accounts.creator_pool.creator.as_ref(),
+        &[vault_bump],
+    ];
+    let signer = &[&vault_seeds[..]];
+
+    anchor_lang::system_program::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.sol_vault.to_account_info(),
+                to: ctx.accounts.nft_holder.to_account_info(),
+            },
+            signer,
+        ),
+        amount,
+    )?;
 
     Ok(())
 }
