@@ -34,6 +34,7 @@ export interface BaseWidgetItem {
     description: string | null;
     createdAt: string;
     expiresAt?: string | null;
+    status: 'ACTIVE' | 'COMPLETED' | 'FAILED' | 'EXPIRED';
     creator: WidgetCreator;
 }
 
