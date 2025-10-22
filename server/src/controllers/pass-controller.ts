@@ -130,6 +130,7 @@ export const buyPass = async (req: AuthRequest, res: Response) => {
         userId,
         creatorId: pass.creatorId,
         passId,
+        nftMint,
       },
     });
 
