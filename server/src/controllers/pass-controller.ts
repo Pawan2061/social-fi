@@ -145,6 +145,44 @@ export const buyPass = async (req: AuthRequest, res: Response) => {
       vaultAddress: pass.vault_address,
     });
 
+    // Update widget progress for PASS_COUNT goals
+    try {
+      const activeWidgets = await prisma.widget.findMany({
+        where: {
+          creatorId: pass.creatorId,
+          type: "GOAL",
+          metric: "PASS_COUNT",
+          status: "ACTIVE",
+        },
+      });
+
+      // Update currentValue for each active widget
+      for (const widget of activeWidgets) {
+        const newCount = await prisma.ownership.count({
+          where: {
+            creatorId: pass.creatorId,
+            createdAt: { gte: widget.createdAt },
+          },
+        });
+
+        await prisma.widget.update({
+          where: { id: widget.id },
+          data: { currentValue: newCount },
+        });
+
+        // Check if goal is completed
+        if (widget.targetValue && newCount >= widget.targetValue) {
+          await prisma.widget.update({
+            where: { id: widget.id },
+            data: { status: "COMPLETED" },
+          });
+        }
+      }
+    } catch (widgetError) {
+      console.error("Error updating widget progress:", widgetError);
+      // Don't fail the pass purchase if widget update fails
+    }
+
     res.status(200).json({
       message: "Pass bought successfully",
       nftMint,
