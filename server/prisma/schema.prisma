@@ -161,6 +161,7 @@ enum GoalMetric {
 enum WidgetStatus {
   ACTIVE
   COMPLETED
+  FAILED
   EXPIRED
 }
 
