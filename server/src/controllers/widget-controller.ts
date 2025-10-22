@@ -4,15 +4,13 @@ import { AuthRequest } from "../middleware/auth-middleware";
 import { CreateWidgetInput } from "../zod/widget-poll-schema";
 import { resolveMediaUrl } from "../lib/image-helper";
 
-// Helper function to check and update widget statuses
 async function updateWidgetStatuses() {
   const now = new Date();
 
-  // Get all active widgets
+  // Get all active widgets (both GOAL and POLL)
   const activeWidgets = await prisma.widget.findMany({
     where: {
       status: "ACTIVE",
-      type: "GOAL",
     },
   });
 
@@ -20,19 +18,23 @@ async function updateWidgetStatuses() {
     let newStatus = widget.status;
     let currentValue = widget.currentValue || 0;
 
-    if (widget.metric === "PASS_COUNT") {
+    if (widget.type === "GOAL" && widget.metric === "PASS_COUNT") {
       currentValue = await prisma.ownership.count({
         where: {
           creatorId: widget.creatorId,
           createdAt: { gte: widget.createdAt },
         },
       });
-    }
 
-    if (widget.targetValue && currentValue >= widget.targetValue) {
-      newStatus = "COMPLETED";
-    } else if (widget.expiresAt && now > widget.expiresAt) {
-      newStatus = "FAILED";
+      if (widget.targetValue && currentValue >= widget.targetValue) {
+        newStatus = "COMPLETED";
+      } else if (widget.expiresAt && now > widget.expiresAt) {
+        newStatus = "FAILED";
+      }
+    } else if (widget.type === "POLL") {
+      if (widget.expiresAt && now > widget.expiresAt) {
+        newStatus = "EXPIRED";
+      }
     }
 
     if (newStatus !== widget.status) {
@@ -43,7 +45,7 @@ async function updateWidgetStatuses() {
           currentValue: currentValue,
         },
       });
-    } else if (currentValue !== widget.currentValue) {
+    } else if (currentValue !== widget.currentValue && widget.type === "GOAL") {
       await prisma.widget.update({
         where: { id: widget.id },
         data: { currentValue: currentValue },
@@ -84,7 +86,6 @@ export const createWidget = async (req: AuthRequest, res: Response) => {
 
     let currentValue: number | null = null;
     if (type === "GOAL" && metric === "PASS_COUNT") {
-      // For new widgets, start with 0 passes sold
       currentValue = 0;
     }
 
@@ -131,7 +132,6 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // Update widget statuses before fetching
     await updateWidgetStatuses();
 
     const ownerships = await prisma.ownership.findMany({
@@ -182,7 +182,6 @@ export const getWidgets = async (req: AuthRequest, res: Response) => {
 
     const voteMap = new Map(userVotes.map((v) => [v.widgetId, v.optionId]));
 
-    // Get pass counts for each widget from their creation time
     const widgetPassCounts = await Promise.all(
       widgets.map(async (w) => {
         if (w.type === "GOAL" && w.metric === "PASS_COUNT") {
@@ -255,7 +254,6 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
     const id = parseInt(widgetId, 10);
     if (isNaN(id)) return res.status(400).json({ error: "Invalid widget ID" });
 
-    // Update widget statuses before fetching
     await updateWidgetStatuses();
 
     const widget = await prisma.widget.findUnique({
@@ -297,7 +295,6 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
     let progress: number | null = null;
 
     if (widget.type === "GOAL" && widget.metric === "PASS_COUNT") {
-      // Count pass sales from the time this specific widget was created
       currentValue = await prisma.ownership.count({
         where: {
           creatorId: widget.creatorId,
@@ -352,6 +349,10 @@ export const voteOnPoll = async (req: AuthRequest, res: Response) => {
     if (!widget) return res.status(404).json({ error: "Widget not found" });
     if (widget.type !== "POLL")
       return res.status(400).json({ error: "This widget is not a poll" });
+    if (widget.status !== "ACTIVE")
+      return res.status(400).json({ error: "This poll is no longer active" });
+    if (widget.expiresAt && new Date() > widget.expiresAt)
+      return res.status(400).json({ error: "This poll has expired" });
 
     const isOwner = widget.creatorId === userId;
     const hasOwnership = await prisma.ownership.findFirst({

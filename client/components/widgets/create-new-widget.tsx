@@ -14,7 +14,7 @@ type CreateWidgetPayload = {
   description?: string | null;
   targetValue?: number | null;
   metric?: "PASS_COUNT" | null;
-  expiresAt?: string | null; // ISO string (optional, not used here)
+  expiresAt?: string | null;
   pollOptions?: { text: string }[];
 };
 
@@ -119,29 +119,53 @@ export default function CreateNewWidget({
   ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
 
   const optionInputRef = useRef<HTMLInputElement>(null);
 
   const canSubmit = useMemo(() => {
-    if (!title.trim()) return false;
+    const errors: Record<string, string> = {};
+
+    if (!title.trim()) {
+      errors.title = "Title is required";
+    }
+
     if (type === "POLL") {
       const validOptions = options.map((o) => o.text.trim()).filter(Boolean);
-      if (validOptions.length < 2) return false;
-      // targetValue optional per instructions, but accept empty or numeric
-      if (targetValue && isNaN(Number(targetValue))) return false;
+      if (validOptions.length < 2) {
+        errors.options = "At least 2 poll options are required";
+      }
+      const uniqueOptions = new Set(
+        validOptions.map((opt) => opt.toLowerCase())
+      );
+      if (uniqueOptions.size !== validOptions.length) {
+        errors.options = "Poll options must be unique";
+      }
+      if (targetValue && isNaN(Number(targetValue))) {
+        errors.targetValue = "Target value must be a valid number";
+      }
     }
+
     if (type === "GOAL") {
-      // For goals, targetValue is required and should be a positive number
-      if (
-        !targetValue ||
-        isNaN(Number(targetValue)) ||
-        Number(targetValue) <= 0
-      )
-        return false;
+      if (!targetValue) {
+        errors.targetValue = "Target value is required for goals";
+      } else if (isNaN(Number(targetValue)) || Number(targetValue) <= 0) {
+        errors.targetValue = "Target value must be a positive number";
+      }
     }
-    if (expiresAtLocal && isNaN(new Date(expiresAtLocal).getTime()))
-      return false;
-    return true;
+
+    if (expiresAtLocal && isNaN(new Date(expiresAtLocal).getTime())) {
+      errors.expiresAt = "Invalid date format";
+    }
+
+    if (expiresAtLocal && new Date(expiresAtLocal) <= new Date()) {
+      errors.expiresAt = "Expiration date must be in the future";
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   }, [title, type, options, targetValue, expiresAtLocal]);
 
   function addOption() {
@@ -170,7 +194,6 @@ export default function CreateNewWidget({
         description: description.trim() || null,
       };
 
-      // Expires At (optional)
       if (expiresAtLocal) {
         const date = new Date(expiresAtLocal);
         payload.expiresAt = isNaN(date.getTime()) ? null : date.toISOString();
@@ -263,6 +286,7 @@ export default function CreateNewWidget({
               placeholder="Give it a catchy title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
+              error={validationErrors.title}
             />
           </div>
 
@@ -283,6 +307,7 @@ export default function CreateNewWidget({
               type="datetime-local"
               value={expiresAtLocal}
               onChange={(e) => setExpiresAtLocal(e.target.value)}
+              error={validationErrors.expiresAt}
             />
           </div>
 
@@ -303,6 +328,11 @@ export default function CreateNewWidget({
           {type === "POLL" && (
             <div className="flex flex-col gap-2">
               <Label>Poll Options</Label>
+              {validationErrors.options && (
+                <span className="text-red-600 font-extrabold text-xs">
+                  {validationErrors.options}
+                </span>
+              )}
               <div className="flex flex-col gap-2">
                 {options.map((o, idx) => (
                   <div key={o.id} className="flex items-center gap-2">
@@ -361,6 +391,7 @@ export default function CreateNewWidget({
               placeholder={type === "GOAL" ? "e.g. 50" : "e.g. 100"}
               value={targetValue}
               onChange={(e) => setTargetValue(e.target.value)}
+              error={validationErrors.targetValue}
             />
           </div>
 
