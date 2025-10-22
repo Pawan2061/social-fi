@@ -1,6 +1,10 @@
+"use client";
+
 import { Sidebar } from "@/components/feed/side-bar";
 import { RightSidebar } from "@/components/feed/right-side-bar";
 import { BrutalGrid, NoiseOverlay } from "@/components/ui/backgrounds";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 
 export default function FeedLayout({
   children,
@@ -57,26 +61,31 @@ export default function FeedLayout({
       category: "News",
     },
   ];
+  const { user } = useAuth();
   return (
     <div className="h-screen bg-white relative overflow-hidden">
       <BrutalGrid />
       <NoiseOverlay />
 
       <div className="flex h-full relative z-10">
-        {/* Left Sidebar - Fixed */}
         <div className="hidden lg:block h-full">
           <Sidebar
-            user={{
-              name: "John Doe",
-              username: "johndoe",
-              avatar: "/api/placeholder/40/40",
-              verified: true,
-            }}
+            user={
+              user
+                ? {
+                    name: user.name || "Anonymous",
+                    username: user.wallet
+                      ? `${user.wallet.slice(0, 6)}...${user.wallet.slice(-4)}`
+                      : "anonymous",
+                    avatar: user.image || "/api/placeholder/40/40",
+                    verified: false,
+                  }
+                : undefined
+            }
           />
         </div>
 
         <div className="flex-1 h-full flex flex-col">
-          {/* Mobile Header - Fixed */}
           <div className="lg:hidden flex-shrink-0">
             <div className="bg-white border-b-4 border-black p-4">
               <div className="flex items-center justify-between">
@@ -106,9 +115,7 @@ export default function FeedLayout({
             </div>
           </div>
 
-          {/* Center Content - Scrollable */}
           <div className="flex-1 flex overflow-hidden">
-            {/* Scrollable Feed Content */}
             <main className="flex-1 overflow-y-auto">{children}</main>
 
             {/* Right Sidebar - Fixed */}
@@ -121,7 +128,6 @@ export default function FeedLayout({
             </div>
           </div>
 
-          {/* Mobile Bottom Navigation - Fixed */}
           <div className="lg:hidden flex-shrink-0 bg-white border-t-4 border-black p-4">
             <div className="flex justify-around items-center">
               {[

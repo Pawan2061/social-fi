@@ -66,6 +66,13 @@ export function Sidebar({ user, className }: SidebarProps) {
       href: "/communities",
       icon: Users,
     },
+
+    {
+      name: "Claims",
+      href: "/claims",
+      icon: User,
+      badge: 1,
+    },
   ];
 
   const isActive = (href: string) => {
@@ -95,10 +102,11 @@ export function Sidebar({ user, className }: SidebarProps) {
           return (
             <Link key={item.name} href={item.href}>
               <div
-                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${active
-                  ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
-                  : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
-                  }`}
+                className={`flex items-center justify-between p-3 border-4 border-black font-extrabold transition-all transform hover:-translate-x-1 hover:-translate-y-1 ${
+                  active
+                    ? "bg-cyan-300 text-black shadow-[6px_6px_0_0_#000]"
+                    : "bg-white text-black hover:bg-gray-50 shadow-[4px_4px_0_0_#000] hover:shadow-[6px_6px_0_0_#000]"
+                }`}
               >
                 <div className="flex items-center space-x-3">
                   <Icon className="h-5 w-5" />
@@ -124,9 +132,7 @@ export function Sidebar({ user, className }: SidebarProps) {
           CREATE NEW
         </Button>
       </div>
-      <div className="mb-8">
-
-      </div>
+      <div className="mb-8"></div>
 
       {user && (
         <div className="mt-auto">
@@ -171,7 +177,8 @@ export function Sidebar({ user, className }: SidebarProps) {
       )}
 
       {/* Choice modal */}
-      {mounted && showCreateChoice &&
+      {mounted &&
+        showCreateChoice &&
         createPortal(
           <div
             className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/40"
@@ -183,7 +190,9 @@ export function Sidebar({ user, className }: SidebarProps) {
               className="relative w-full max-w-sm bg-white border-4 border-black shadow-[12px_12px_0_0_#000] p-6 z-[2147483648]"
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <h3 className="text-xl font-black mb-4">What do you want to create?</h3>
+              <h3 className="text-xl font-black mb-4">
+                What do you want to create?
+              </h3>
               <div className="space-y-3">
                 <Button
                   onClick={() => {
@@ -207,11 +216,11 @@ export function Sidebar({ user, className }: SidebarProps) {
             </div>
           </div>,
           document.body
-        )
-      }
+        )}
 
       {/* Create Widget modal wrapper */}
-      {mounted && showCreateWidget &&
+      {mounted &&
+        showCreateWidget &&
         createPortal(
           <div
             className="fixed inset-0 z-[2147483647] flex items-center justify-center p-4 bg-black/40"
@@ -230,8 +239,7 @@ export function Sidebar({ user, className }: SidebarProps) {
             </div>
           </div>,
           document.body
-        )
-      }
+        )}
 
       {/* Create Post popup */}
       {mounted && showCreate && (
