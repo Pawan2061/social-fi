@@ -17,9 +17,15 @@ pub struct CreateCreatorPool<'info> {
     #[account(mut)]
     pub creator: Signer<'info>,
 
-    /// CHECK: This is a regular account that can hold native SOL
-    #[account(mut)]
-    pub usdc_vault: AccountInfo<'info>,
+    /// CHECK: This is a PDA vault that holds native SOL
+    #[account(
+        init,
+        payer = creator,
+        space = 0, // Native SOL account needs no space
+        seeds = [b"sol_vault", creator.key().as_ref()],
+        bump
+    )]
+    pub sol_vault: AccountInfo<'info>,
 
     pub factory: Account<'info, Factory>,
 
@@ -78,10 +84,8 @@ pub fn create_pool(
     let factory = &ctx.accounts.factory;
 
     creator_pool.creator = ctx.accounts.creator.key();
-
     creator_pool.usdc_mint = Pubkey::default(); // No longer using USDC mint
-    creator_pool.usdc_vault = ctx.accounts.usdc_vault.key();
-
+    creator_pool.usdc_vault = ctx.accounts.sol_vault.key(); // Store SOL vault address
     creator_pool.total_deposited = 0;
     creator_pool.total_withdrawn = 0;
     creator_pool.claim_count = 0;
@@ -98,8 +102,25 @@ pub fn create_pool(
     };
 
     creator_pool.status = PoolStatus::Active;
-
     creator_pool.bump = ctx.bumps.creator_pool;
+
+    // Initialize SOL vault with rent exemption
+    let vault_bump = ctx.bumps.sol_vault;
+    let vault_seeds = &[b"sol_vault", creator_pool.creator.as_ref(), &[vault_bump]];
+    let signer = &[&vault_seeds[..]];
+
+    // Transfer minimum SOL for rent exemption
+    anchor_lang::system_program::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.creator.to_account_info(),
+                to: ctx.accounts.sol_vault.to_account_info(),
+            },
+            signer,
+        ),
+        1000000, // 0.001 SOL for rent exemption
+    )?;
 
     let pool_key = creator_pool.key();
     let creator_key = creator_pool.creator;

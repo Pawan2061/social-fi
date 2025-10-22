@@ -121,8 +121,12 @@ pub struct FinalizeClaimWithDistribution<'info> {
     #[account(mut)]
     pub creator_pool: Account<'info, CreatorPool>,
 
-    /// CHECK: This is a regular account that can hold native SOL
-    #[account(mut)]
+    /// CHECK: This is the SOL vault PDA
+    #[account(
+        mut,
+        seeds = [b"sol_vault", creator_pool.creator.as_ref()],
+        bump
+    )]
     pub creator_pool_vault: AccountInfo<'info>,
 
     /// CHECK: This is a regular account that can hold native SOL
@@ -133,6 +137,30 @@ pub struct FinalizeClaimWithDistribution<'info> {
     pub creator: Signer<'info>,
 
     pub factory: Account<'info, Factory>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct DistributeToNftHolder<'info> {
+    #[account(
+        mut,
+        seeds = [b"creator_pool", creator_pool.creator.as_ref()],
+        bump = creator_pool.bump
+    )]
+    pub creator_pool: Account<'info, CreatorPool>,
+
+    /// CHECK: This is the SOL vault PDA
+    #[account(
+        mut,
+        seeds = [b"sol_vault", creator_pool.creator.as_ref()],
+        bump
+    )]
+    pub sol_vault: AccountInfo<'info>,
+
+    /// CHECK: This is a regular account that can receive native SOL
+    #[account(mut)]
+    pub nft_holder: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -347,18 +375,22 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
     require!(payout_amount > 0, ErrorCode::InsufficientFunds);
 
     if claim.yes_votes > claim.no_votes {
-        // Claim approved - transfer funds to creator
+        // Claim approved - transfer funds from vault to creator
         claim.status = crate::state::ClaimStatus::Approved;
 
-        // Native SOL transfer - creator must sign the transaction
-        // The vault is owned by the creator, so they can transfer from it
+        // Transfer from SOL vault using PDA authority
+        let vault_bump = ctx.bumps.creator_pool_vault;
+        let vault_seeds = &[b"sol_vault", creator_pool.creator.as_ref(), &[vault_bump]];
+        let signer = &[&vault_seeds[..]];
+
         anchor_lang::system_program::transfer(
-            CpiContext::new(
+            CpiContext::new_with_signer(
                 ctx.accounts.system_program.to_account_info(),
                 anchor_lang::system_program::Transfer {
                     from: ctx.accounts.creator_pool_vault.to_account_info(),
                     to: ctx.accounts.creator_usdc_account.to_account_info(),
                 },
+                signer,
             ),
             payout_amount,
         )?;
@@ -377,7 +409,7 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
             payout_amount,
         });
     } else {
-        // Claim rejected - set status to refunded (backend will handle distribution to NFT holders)
+        // Claim rejected - funds stay in vault for NFT holder distribution
         claim.status = crate::state::ClaimStatus::Refunded;
 
         emit!(RefundDistributed {
@@ -401,6 +433,30 @@ pub fn finalize_claim_with_distribution(ctx: Context<FinalizeClaimWithDistributi
             _ => "Unknown".to_string(),
         },
     });
+
+    Ok(())
+}
+
+pub fn distribute_to_nft_holder(ctx: Context<DistributeToNftHolder>, amount: u64) -> Result<()> {
+    let vault_bump = ctx.bumps.sol_vault;
+    let vault_seeds = &[
+        b"sol_vault",
+        ctx.accounts.creator_pool.creator.as_ref(),
+        &[vault_bump],
+    ];
+    let signer = &[&vault_seeds[..]];
+
+    anchor_lang::system_program::transfer(
+        CpiContext::new_with_signer(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.sol_vault.to_account_info(),
+                to: ctx.accounts.nft_holder.to_account_info(),
+            },
+            signer,
+        ),
+        amount,
+    )?;
 
     Ok(())
 }

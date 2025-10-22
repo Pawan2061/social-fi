@@ -512,6 +512,22 @@ export default function ClaimsPage() {
         result,
       });
 
+      // Check if vault exists before finalization
+      const connection = new Connection(clusterApiUrl("devnet"));
+      const vaultAccountInfo = await connection.getAccountInfo(
+        new PublicKey(vaultAddress)
+      );
+
+      if (!vaultAccountInfo) {
+        throw new Error(
+          `Vault account does not exist at ${vaultAddress}. ` +
+            `The creator pool was created without a vault. ` +
+            `Please recreate the creator pool with the updated contract.`
+        );
+      }
+
+      console.log("✅ Vault account exists, proceeding with finalization...");
+
       const onchainResult = await finalizeClaimWithDistributionOnChain(
         {
           publicKey,

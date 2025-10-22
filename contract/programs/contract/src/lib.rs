@@ -90,4 +90,11 @@ pub mod contract {
     pub fn change_vote(ctx: Context<ChangeVote>, new_choice: VoteChoice) -> Result<()> {
         instructions::change_vote(ctx, new_choice)
     }
+
+    pub fn distribute_to_nft_holder(
+        ctx: Context<DistributeToNftHolder>,
+        amount: u64,
+    ) -> Result<()> {
+        instructions::distribute_to_nft_holder(ctx, amount)
+    }
 }

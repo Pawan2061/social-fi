@@ -9,7 +9,6 @@ pub struct Vote<'info> {
         mut,
         has_one = creator_pool,
         constraint = (claim.status == crate::state::ClaimStatus::Voting || claim.status == crate::state::ClaimStatus::Pending) @ ErrorCode::InvalidClaimStatus,
-        constraint = Clock::get()?.unix_timestamp < claim.voting_ends_at @ ErrorCode::VotingEnded
     )]
     pub claim: Account<'info, Claim>,
 
@@ -37,7 +36,6 @@ pub struct ChangeVote<'info> {
         mut,
         has_one = creator_pool,
         constraint = (claim.status == crate::state::ClaimStatus::Voting || claim.status == crate::state::ClaimStatus::Pending) @ ErrorCode::InvalidClaimStatus,
-        constraint = Clock::get()?.unix_timestamp < claim.voting_ends_at @ ErrorCode::VotingEnded
     )]
     pub claim: Account<'info, Claim>,
 
@@ -58,8 +56,6 @@ pub struct ChangeVote<'info> {
 pub enum ErrorCode {
     #[msg("Invalid claim status for voting")]
     InvalidClaimStatus,
-    #[msg("Voting period has ended")]
-    VotingEnded,
     #[msg("Invalid vote account")]
     InvalidVoteAccount,
     #[msg("Math overflow")]

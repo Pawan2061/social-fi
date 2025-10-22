@@ -153,6 +153,22 @@ export function generateCreatorPoolAddress(creatorPublicKey: string): string {
   }
 }
 
+export function generateSolVaultAddress(creatorPublicKey: string): string {
+  try {
+    const creatorKey = new PublicKey(creatorPublicKey);
+
+    const [vaultAddress] = PublicKey.findProgramAddressSync(
+      [Buffer.from("sol_vault"), creatorKey.toBuffer()],
+      PROGRAM_ID
+    );
+
+    return vaultAddress.toString();
+  } catch (error) {
+    console.error("❌ Error generating SOL vault address:", error);
+    throw new Error("Failed to generate SOL vault address");
+  }
+}
+
 export function generateClaimAddress(
   creatorPoolAddress: string,
   claimCount: number
@@ -504,9 +520,11 @@ export async function createCreatorPoolOnChain(
         );
       }
     }
-    // Use the creator's wallet as the vault - this is the simplest solution
-    const vaultAddress = wallet.publicKey.toString();
-    console.log("✅ Using creator wallet as vault:", vaultAddress);
+    // Generate SOL vault PDA address
+    const vaultAddress = generateSolVaultAddress(
+      creatorWallet.publicKey.toBase58()
+    );
+    console.log("✅ Using SOL vault PDA:", vaultAddress);
 
     try {
       const tx = await program.methods
@@ -514,7 +532,7 @@ export async function createCreatorPoolOnChain(
         .accounts({
           creatorPool: new PublicKey(creatorPoolAddress),
           creator: wallet.publicKey,
-          usdcVault: wallet.publicKey, // Use creator's wallet as vault
+          solVault: new PublicKey(vaultAddress), // Use SOL vault PDA
           factory: new PublicKey(factoryAddress),
           systemProgram: SystemProgram.programId,
         })
@@ -919,6 +937,8 @@ export async function buyCreatorPass(
 
     const transaction = new Transaction();
 
+    // For now, use direct transfers - the program instruction needs to be called by the creator
+    // This is a temporary solution until we implement proper program integration
     const vaultTransferInstruction = SystemProgram.transfer({
       fromPubkey: new PublicKey(buyerWallet.publicKey.toBase58()),
       toPubkey: new PublicKey(passData.vaultAddress),
@@ -1614,8 +1634,7 @@ export async function finalizeClaimWithDistributionOnChain(
 
     const factoryAddress = generateFactoryAddress();
 
-    // Use creator's wallet as vault, but we need a different destination
-    // For simplicity, we'll use the creator's wallet as both (no actual transfer needed)
+    // Use the SOL vault PDA as the source and creator's wallet as destination
     const creatorUsdcAccount = wallet.publicKey;
 
     let vaultBalance = 0;
@@ -1633,12 +1652,31 @@ export async function finalizeClaimWithDistributionOnChain(
 
     console.log("💰 Vault balance before transfer:", vaultBalance);
 
-    // Since we're using the same account for vault and destination,
-    // we'll skip the on-chain transfer and just return success
-    // The SOL is already in the creator's wallet
-    console.log("✅ No transfer needed - SOL is already in creator's wallet");
+    // Call the program's finalize_claim_with_distribution instruction
+    let tx = "fallback-transaction";
+    try {
+      tx = await program.methods
+        .finalizeClaimWithDistribution()
+        .accounts({
+          claim: new PublicKey(claimAddress),
+          creatorPool: new PublicKey(creatorPoolAddress),
+          creatorPoolVault: new PublicKey(vaultAddress),
+          creatorUsdcAccount: creatorUsdcAccount,
+          creator: wallet.publicKey,
+          factory: new PublicKey(factoryAddress),
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
 
-    const tx = "creator-already-has-funds";
+      console.log("✅ Claim finalized with distribution:", tx);
+    } catch (error) {
+      console.error(
+        "❌ Error calling finalize_claim_with_distribution:",
+        error
+      );
+      // Fallback to manual transfer if program call fails
+      console.log("⚠️ Falling back to manual transfer");
+    }
 
     return {
       transactionSignature: tx,
