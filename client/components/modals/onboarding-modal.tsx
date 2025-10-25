@@ -184,6 +184,9 @@ export default function OnboardingModal({
         tokenMint: collection.collectionMint,
         price: passPrice,
         vault_address: vaultAddress,
+        metadataUri: collection.metadataUri,
+        name: collectionName,
+        description: collectionDescription,
       });
       console.log("✅ Pass created successfully:", pass);
 

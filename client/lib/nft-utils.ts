@@ -31,6 +31,11 @@ import { mplTokenMetadata } from "@metaplex-foundation/mpl-token-metadata";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import idl from "../idl/contract.json";
+import {
+  uploadImageToIPFS,
+  uploadJSONToIPFS,
+  uploadNFTProfileMetadata,
+} from "./ipfs-utils";
 
 const PROGRAM_ID = new PublicKey(
   "BqHTWrkNFvj9ZA24yFkcTiXdczrNuQpspknnt3tWabVF"
@@ -625,19 +630,29 @@ export async function testNetworkConnection(rpcUrl?: string): Promise<boolean> {
 export function createUmiInstance(rpcUrl?: string): Umi {
   const rpcEndpoint = rpcUrl || clusterApiUrl("devnet");
 
-  const umi = createUmi(rpcEndpoint).use(mplTokenMetadata()).use(mockUploader);
+  const umi = createUmi(rpcEndpoint).use(mplTokenMetadata()).use(ipfsUploader);
 
   return umi;
 }
 
 export async function uploadImage(umi: Umi, imageFile: File): Promise<string> {
-  const buffer = await imageFile.arrayBuffer();
-  const file = createGenericFile(new Uint8Array(buffer), imageFile.name, {
-    contentType: imageFile.type,
-  });
+  try {
+    // Use IPFS for image upload
+    return await uploadImageToIPFS(imageFile);
+  } catch (error) {
+    console.error(
+      "❌ IPFS upload failed, falling back to mock uploader:",
+      error
+    );
+    // Fallback to mock uploader if IPFS fails
+    const buffer = await imageFile.arrayBuffer();
+    const file = createGenericFile(new Uint8Array(buffer), imageFile.name, {
+      contentType: imageFile.type,
+    });
 
-  const [imageUri] = await umi.uploader.upload([file]);
-  return imageUri;
+    const [imageUri] = await umi.uploader.upload([file]);
+    return imageUri;
+  }
 }
 
 export async function uploadMetadata(
@@ -650,8 +665,18 @@ export async function uploadMetadata(
     attributes?: Array<{ trait_type: string; value: string }>;
   }
 ): Promise<string> {
-  const uri = await umi.uploader.uploadJson(metadata);
-  return uri;
+  try {
+    // Use IPFS for metadata upload
+    return await uploadNFTProfileMetadata(metadata);
+  } catch (error) {
+    console.error(
+      "❌ IPFS metadata upload failed, falling back to mock uploader:",
+      error
+    );
+    // Fallback to mock uploader if IPFS fails
+    const uri = await umi.uploader.uploadJson(metadata);
+    return uri;
+  }
 }
 
 export async function createCreatorPassCollection(
@@ -669,6 +694,7 @@ export async function createCreatorPassCollection(
   collectionMint: string;
   collectionMetadata: string;
   collectionMasterEdition: string;
+  metadataUri: string;
 }> {
   try {
     console.log("🎨 Starting Creator Pass NFT collection creation...");
@@ -686,6 +712,7 @@ export async function createCreatorPassCollection(
 
     const imageUri = await uploadImage(umi, collectionData.image);
 
+    // Upload metadata to IPFS
     const metadataUri = await uploadMetadata(umi, {
       name: collectionData.name,
       description: collectionData.description,
@@ -697,10 +724,12 @@ export async function createCreatorPassCollection(
       ],
     });
 
+    console.log("📄 Created metadata URI:", metadataUri);
+
     const collectionMint = generateSigner(umi);
 
     try {
-      const createNftResult = await createNft(umi, {
+      await createNft(umi, {
         mint: collectionMint,
         name: collectionData.name,
         symbol: collectionData.symbol || "PASS",
@@ -725,6 +754,7 @@ export async function createCreatorPassCollection(
         collectionMint: collectionMint.publicKey,
         collectionMetadata: collectionMetadata[0],
         collectionMasterEdition: collectionMasterEdition[0],
+        metadataUri: metadataUri,
       };
     } catch (nftError) {
       console.error("❌ NFT creation transaction failed:", nftError);
@@ -860,6 +890,7 @@ export async function buyCreatorPass(
 ): Promise<{
   transactionSignature: string;
   nftMint: string;
+  metadataUri: string;
 }> {
   try {
     console.log("🛒 Starting Creator Pass purchase...");
@@ -903,11 +934,36 @@ export async function buyCreatorPass(
     const collectionMint = UMIPublicKey(passData.tokenMint);
 
     console.log("🪙 Creating individual NFT for buyer...");
+
+    // Create metadata for the individual NFT
+    const individualMetadata = {
+      name: `Creator Pass #${Date.now()}`,
+      description:
+        "A unique Creator Pass NFT that grants access to exclusive content and benefits.",
+      image:
+        "https://via.placeholder.com/400x400/6366f1/ffffff?text=Creator+Pass", // Placeholder image
+      symbol: "PASS",
+      attributes: [
+        { trait_type: "Type", value: "Creator Pass" },
+        { trait_type: "Rarity", value: "Common" },
+        { trait_type: "Access Level", value: "Premium" },
+      ],
+    };
+
+    // Upload individual NFT metadata to IPFS
+    const individualMetadataUri = await uploadNFTProfileMetadata(
+      individualMetadata
+    );
+    console.log(
+      "📄 Individual NFT metadata uploaded to IPFS:",
+      individualMetadataUri
+    );
+
     await createNft(umi, {
       mint: nftMint,
-      name: `Creator Pass #${Date.now()}`,
-      symbol: "PASS",
-      uri: "https://mock-storage.com/creator-pass-metadata.json",
+      name: individualMetadata.name,
+      symbol: individualMetadata.symbol,
+      uri: individualMetadataUri,
       sellerFeeBasisPoints: percentAmount(0),
       collection: {
         key: collectionMint,
@@ -977,6 +1033,7 @@ export async function buyCreatorPass(
     return {
       transactionSignature: signature,
       nftMint: nftMint.publicKey,
+      metadataUri: individualMetadataUri,
     };
   } catch (error) {
     console.error("❌ Error buying creator pass:", error);
@@ -1095,7 +1152,7 @@ export async function fileClaimOnChain(
     );
 
     try {
-      const accountInfo = await connection.getAccountInfo(creatorUsdcAccount);
+      await connection.getAccountInfo(creatorUsdcAccount);
     } catch (error) {
       console.error("❌ Error verifying token account:", error);
     }
@@ -1571,7 +1628,7 @@ export async function refundClaimOnChain(
 
     return { transactionSignature: tx };
   } catch (error) {
-    console.error("❌ Error processing claim refund:", error);
+    console.error(" Error processing claim refund:", error);
     throw new Error(
       `Failed to process claim refund: ${
         error instanceof Error ? error.message : "Unknown error"
@@ -1580,19 +1637,40 @@ export async function refundClaimOnChain(
   }
 }
 
-const mockUploader = {
+const ipfsUploader = {
   install(umi: Umi) {
     umi.uploader = {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       upload: async (files: any[]) => {
-        return files.map(
-          (file, index) =>
-            `https://mock-storage.com/${file.name}-${Date.now()}-${index}`
-        );
+        try {
+          const uploadPromises = files.map(async (file) => {
+            // Convert Umi file to File object for IPFS upload
+            const fileObj = new File([file.buffer], file.name, {
+              type: file.contentType,
+            });
+            return await uploadImageToIPFS(fileObj);
+          });
+
+          return await Promise.all(uploadPromises);
+        } catch (error) {
+          console.error("❌ IPFS upload failed, using mock URLs:", error);
+          // Fallback to mock URLs if IPFS fails
+          return files.map(
+            (file, index) =>
+              `https://mock-storage.com/${file.name}-${Date.now()}-${index}`
+          );
+        }
       },
 
-      uploadJson: async () => {
-        return `https://mock-storage.com/metadata-${Date.now()}.json`;
+      uploadJson: async <T>(json: T) => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          return await uploadJSONToIPFS(json as Record<string, any>);
+        } catch (error) {
+          console.error("❌ IPFS JSON upload failed, using mock URL:", error);
+          // Fallback to mock URL if IPFS fails
+          return `https://mock-storage.com/metadata-${Date.now()}.json`;
+        }
       },
 
       getUploadPrice: async () => {

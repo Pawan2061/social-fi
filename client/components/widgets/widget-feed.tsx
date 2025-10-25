@@ -36,20 +36,27 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
   useEffect(() => {
     if (useMock || !data) return;
 
-    const activePolls = data.filter(
-      (w) => w.type === "POLL" && w.status === "ACTIVE" && w.expiresAt
+    // Ensure we have an array of widgets
+    const widgetsArray = Array.isArray(data)
+      ? data
+      : Array.isArray(data?.widgets)
+      ? data.widgets
+      : [];
+
+    const activePolls = widgetsArray.filter(
+      (w: WidgetListItem) =>
+        w.type === "POLL" && w.status === "ACTIVE" && w.expiresAt
     );
     if (activePolls.length === 0) return;
 
     const now = new Date().getTime();
-    const soonToExpire = activePolls.some((poll) => {
+    const soonToExpire = activePolls.some((poll: WidgetListItem) => {
       const expiryTime = new Date(poll.expiresAt!).getTime();
       const timeUntilExpiry = expiryTime - now;
-      return timeUntilExpiry > 0 && timeUntilExpiry < 60000; // Less than 1 minute
+      return timeUntilExpiry > 0 && timeUntilExpiry < 60000;
     });
 
     if (soonToExpire) {
-      // Refresh every 5 seconds when polls are about to expire
       const fastInterval = setInterval(() => {
         refetch();
       }, 5000);
@@ -148,7 +155,7 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
 
   return (
     <div className="space-y-6">
-      {widgets.map((w, index) => (
+      {widgets.map((w: WidgetListItem, index: number) => (
         <div
           key={w.id}
           className={`transform ${
