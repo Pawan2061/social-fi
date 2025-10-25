@@ -9,6 +9,7 @@ import voteRouter from "./routes/vote-route";
 import userRouter from "./routes/user-route";
 import mediaRouter from "./routes/media-route";
 import widgetRouter from "./routes/widget-route";
+import metadataRouter from "./routes/metadata-route";
 import jwt from "jsonwebtoken";
 
 dotenv.config();
@@ -35,6 +36,7 @@ apiRouter.use("/votes", voteRouter);
 apiRouter.use("/users", userRouter);
 apiRouter.use("/media", mediaRouter);
 apiRouter.use("/widgets", widgetRouter);
+apiRouter.use("/metadata", metadataRouter);
 
 app.use("/api", apiRouter);
 

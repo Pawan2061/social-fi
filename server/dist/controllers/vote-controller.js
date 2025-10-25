@@ -59,6 +59,14 @@ const addVote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const { claimId } = req.params;
         const { approve, txSig, blockSlot } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
+        console.log("🗳️ Vote request received:", {
+            claimId,
+            userId,
+            body: req.body,
+            approve,
+            txSig,
+            blockSlot,
+        });
         if (!userId) {
             return res.status(401).json({ error: "Unauthorized" });
         }
@@ -95,6 +103,7 @@ const addVote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         res.status(200).json(vote);
     }
     catch (e) {
+        console.error("❌ Error in addVote:", e);
         res.status(500).json({ message: e.message });
     }
 });

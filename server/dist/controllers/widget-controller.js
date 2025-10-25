@@ -11,7 +11,56 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.voteOnPoll = exports.getWidget = exports.getWidgets = exports.createWidget = void 0;
 const prisma_1 = require("../lib/prisma");
-const storage_1 = require("../lib/storage");
+const image_helper_1 = require("../lib/image-helper");
+function updateWidgetStatuses() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const now = new Date();
+        // Get all active widgets (both GOAL and POLL)
+        const activeWidgets = yield prisma_1.prisma.widget.findMany({
+            where: {
+                status: "ACTIVE",
+            },
+        });
+        for (const widget of activeWidgets) {
+            let newStatus = widget.status;
+            let currentValue = widget.currentValue || 0;
+            if (widget.type === "GOAL" && widget.metric === "PASS_COUNT") {
+                currentValue = yield prisma_1.prisma.ownership.count({
+                    where: {
+                        creatorId: widget.creatorId,
+                        createdAt: { gte: widget.createdAt },
+                    },
+                });
+                if (widget.targetValue && currentValue >= widget.targetValue) {
+                    newStatus = "COMPLETED";
+                }
+                else if (widget.expiresAt && now > widget.expiresAt) {
+                    newStatus = "FAILED";
+                }
+            }
+            else if (widget.type === "POLL") {
+                if (widget.expiresAt && now > widget.expiresAt) {
+                    newStatus = "EXPIRED";
+                }
+            }
+            if (newStatus !== widget.status) {
+                yield prisma_1.prisma.widget.update({
+                    where: { id: widget.id },
+                    data: {
+                        status: newStatus,
+                        currentValue: currentValue,
+                    },
+                });
+            }
+            else if (currentValue !== widget.currentValue && widget.type === "GOAL") {
+                yield prisma_1.prisma.widget.update({
+                    where: { id: widget.id },
+                    data: { currentValue: currentValue },
+                });
+            }
+        }
+    });
+}
 const createWidget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -34,9 +83,7 @@ const createWidget = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         }
         let currentValue = null;
         if (type === "GOAL" && metric === "PASS_COUNT") {
-            currentValue = yield prisma_1.prisma.ownership.count({
-                where: { creatorId },
-            });
+            currentValue = 0;
         }
         const widget = yield prisma_1.prisma.widget.create({
             data: {
@@ -81,10 +128,15 @@ const getWidgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         if (!userId)
             return res.status(401).json({ error: "Unauthorized" });
+        yield updateWidgetStatuses();
         const ownerships = yield prisma_1.prisma.ownership.findMany({
             where: { userId },
             select: { creatorId: true },
         });
+        if (!ownerships.length)
+            return res
+                .status(200)
+                .json({ message: "You haven't bought any passes", widgets: [] });
         const creatorIds = ownerships.map((o) => o.creatorId);
         if (creatorIds.length === 0)
             return res.status(200).json([]);
@@ -110,18 +162,31 @@ const getWidgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             _count: true,
             where: { creatorId: { in: creatorIds } },
         });
-        const passCountMap = Object.fromEntries(creatorPassCounts.map((c) => [c.creatorId, c._count]));
+        const creatorPassCountMap = Object.fromEntries(creatorPassCounts.map((c) => [c.creatorId, c._count]));
         const userVotes = yield prisma_1.prisma.pollVote.findMany({
             where: { userId },
             select: { widgetId: true, optionId: true },
         });
         const voteMap = new Map(userVotes.map((v) => [v.widgetId, v.optionId]));
+        const widgetPassCounts = yield Promise.all(widgets.map((w) => __awaiter(void 0, void 0, void 0, function* () {
+            if (w.type === "GOAL" && w.metric === "PASS_COUNT") {
+                const count = yield prisma_1.prisma.ownership.count({
+                    where: {
+                        creatorId: w.creatorId,
+                        createdAt: { gte: w.createdAt },
+                    },
+                });
+                return { widgetId: w.id, count };
+            }
+            return { widgetId: w.id, count: w.currentValue || 0 };
+        })));
+        const passCountMap = Object.fromEntries(widgetPassCounts.map((w) => [w.widgetId, w.count]));
         const widgetsWithDetails = widgets.map((w) => {
             const isGoal = w.type === "GOAL";
             const isPoll = w.type === "POLL";
             let currentValue = w.currentValue;
             if (isGoal && w.metric === "PASS_COUNT") {
-                currentValue = passCountMap[w.creatorId] || 0;
+                currentValue = passCountMap[w.id] || 0;
             }
             const progress = isGoal && w.targetValue
                 ? Math.min((currentValue / w.targetValue) * 100, 100)
@@ -133,6 +198,7 @@ const getWidgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 description: w.description,
                 createdAt: w.createdAt,
                 expiresAt: w.expiresAt,
+                status: w.status,
                 targetValue: isGoal ? w.targetValue : undefined,
                 metric: isGoal ? w.metric : undefined,
                 currentValue: isGoal ? currentValue : undefined,
@@ -143,9 +209,7 @@ const getWidgets = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
                 creator: {
                     id: w.creator.id,
                     name: w.creator.name,
-                    image: w.creator.image
-                        ? `${storage_1.PUBLIC_BUCKET_URL}/${w.creator.image}`
-                        : null,
+                    image: w.creator.image ? (0, image_helper_1.resolveMediaUrl)(w.creator.image) : null,
                 },
             };
         });
@@ -167,6 +231,7 @@ const getWidget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const id = parseInt(widgetId, 10);
         if (isNaN(id))
             return res.status(400).json({ error: "Invalid widget ID" });
+        yield updateWidgetStatuses();
         const widget = yield prisma_1.prisma.widget.findUnique({
             where: { id },
             include: {
@@ -201,14 +266,17 @@ const getWidget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         let progress = null;
         if (widget.type === "GOAL" && widget.metric === "PASS_COUNT") {
             currentValue = yield prisma_1.prisma.ownership.count({
-                where: { creatorId: widget.creatorId },
+                where: {
+                    creatorId: widget.creatorId,
+                    createdAt: { gte: widget.createdAt },
+                },
             });
             progress = widget.targetValue
                 ? Math.min((currentValue / widget.targetValue) * 100, 100)
                 : null;
         }
-        const widgetWithImage = Object.assign(Object.assign({}, widget), { currentValue, progress: progress ? Math.round(progress) : 0, hasVoted: widget.type === "POLL" ? hasVoted : undefined, votedOptionId: widget.type === "POLL" ? votedOptionId : undefined, creator: Object.assign(Object.assign({}, widget.creator), { image: widget.creator.image
-                    ? `${storage_1.PUBLIC_BUCKET_URL}/${widget.creator.image}`
+        const widgetWithImage = Object.assign(Object.assign({}, widget), { currentValue, progress: progress ? Math.round(progress) : 0, status: widget.status, hasVoted: widget.type === "POLL" ? hasVoted : undefined, votedOptionId: widget.type === "POLL" ? votedOptionId : undefined, creator: Object.assign(Object.assign({}, widget.creator), { image: widget.creator.image
+                    ? (0, image_helper_1.resolveMediaUrl)(widget.creator.image)
                     : null }) });
         return res.status(200).json(widgetWithImage);
     }
@@ -239,6 +307,10 @@ const voteOnPoll = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             return res.status(404).json({ error: "Widget not found" });
         if (widget.type !== "POLL")
             return res.status(400).json({ error: "This widget is not a poll" });
+        if (widget.status !== "ACTIVE")
+            return res.status(400).json({ error: "This poll is no longer active" });
+        if (widget.expiresAt && new Date() > widget.expiresAt)
+            return res.status(400).json({ error: "This poll has expired" });
         const isOwner = widget.creatorId === userId;
         const hasOwnership = yield prisma_1.prisma.ownership.findFirst({
             where: { userId, creatorId: widget.creatorId },

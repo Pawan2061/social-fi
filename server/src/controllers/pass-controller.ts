@@ -5,7 +5,8 @@ import { resolveMediaUrl } from "../lib/image-helper";
 
 export const createPass = async (req: AuthRequest, res: Response) => {
   try {
-    const { tokenMint, price, vault_address } = req.body;
+    const { tokenMint, price, vault_address, metadataUri, name, description } =
+      req.body;
     const creatorId = req.user?.userId;
     console.log(creatorId);
     if (!creatorId) return res.status(401).json({ error: "Unauthorized" });
@@ -18,7 +19,15 @@ export const createPass = async (req: AuthRequest, res: Response) => {
     }
 
     const pass = await prisma.pass.create({
-      data: { creatorId, tokenMint, price, vault_address },
+      data: {
+        creatorId,
+        tokenMint,
+        price,
+        vault_address,
+        metadataUri,
+        name,
+        description,
+      },
     });
     res.status(200).json(pass);
   } catch (e: any) {

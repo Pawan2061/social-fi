@@ -65,6 +65,11 @@ model Pass {
   price         Float
   createdAt     DateTime @default(now())
 
+  metadataUri String?
+
+  name        String?
+  description String?
+
   ownerships Ownership[]
 }
 
