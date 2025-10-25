@@ -71,6 +71,7 @@ export default function ProfilePage() {
           description: (w.description as string) ?? null,
           createdAt: (w.createdAt as string) ?? new Date().toISOString(),
           expiresAt: (w.expiresAt as string) ?? null,
+          status: "ACTIVE" as const,
           creator: {
             id: userProfile.id,
             name: userProfile.name,

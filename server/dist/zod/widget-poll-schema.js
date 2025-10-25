@@ -6,9 +6,7 @@ exports.WidgetType = zod_1.z.enum(["GOAL", "POLL"]);
 exports.GoalMetric = zod_1.z.enum(["PASS_COUNT"]);
 exports.WidgetStatus = zod_1.z.enum(["ACTIVE", "COMPLETED", "EXPIRED"]);
 exports.PollOptionSchema = zod_1.z.object({
-    widgetId: zod_1.z.number().optional(),
     text: zod_1.z.string().min(1, "Option text is required"),
-    voteCount: zod_1.z.number().default(0).optional(),
 });
 exports.PollVoteSchema = zod_1.z.object({
     id: zod_1.z.number().optional(),

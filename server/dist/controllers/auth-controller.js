@@ -18,7 +18,7 @@ const crypto_1 = __importDefault(require("crypto"));
 const tweetnacl_1 = __importDefault(require("tweetnacl"));
 const bs58_1 = __importDefault(require("bs58"));
 const prisma_1 = require("../lib/prisma");
-const storage_1 = require("../lib/storage");
+const image_helper_1 = require("../lib/image-helper");
 const JWT_SECRET = process.env.JWT_SECRET;
 const requestNonce = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { address } = req.body;
@@ -56,11 +56,14 @@ const me = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!req.user)
             return res.status(401).send("Unauthorized");
         const user = yield prisma_1.prisma.user.findUnique({
-            where: { id: req.user.userId },
+            where: {
+                id: req.user.userId,
+            },
+            include: { pass: true },
         });
         if (!user)
             return res.status(404).json({ error: "User not found" });
-        const userWithImage = Object.assign(Object.assign({}, user), { image: user.image ? `${storage_1.PUBLIC_BUCKET_URL}/${user.image}` : null });
+        const userWithImage = Object.assign(Object.assign({}, user), { image: user.image ? (0, image_helper_1.resolveMediaUrl)(user.image) : null });
         res.json(userWithImage);
     }
     catch (e) {

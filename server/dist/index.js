@@ -14,10 +14,13 @@ const vote_route_1 = __importDefault(require("./routes/vote-route"));
 const user_route_1 = __importDefault(require("./routes/user-route"));
 const media_route_1 = __importDefault(require("./routes/media-route"));
 const widget_route_1 = __importDefault(require("./routes/widget-route"));
+const metadata_route_1 = __importDefault(require("./routes/metadata-route"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-app.use((0, cors_1.default)());
+app.use((0, cors_1.default)({
+    origin: "http://localhost:3000",
+}));
 const PORT = process.env.PORT || 4000;
 app.use(express_1.default.json());
 const apiRouter = express_1.default.Router();
@@ -30,6 +33,7 @@ apiRouter.use("/votes", vote_route_1.default);
 apiRouter.use("/users", user_route_1.default);
 apiRouter.use("/media", media_route_1.default);
 apiRouter.use("/widgets", widget_route_1.default);
+apiRouter.use("/metadata", metadata_route_1.default);
 app.use("/api", apiRouter);
 //  For testting purpose aaile , see  chaiyeko user id from prisma studio
 app.get("/api/jwt", (req, res) => {

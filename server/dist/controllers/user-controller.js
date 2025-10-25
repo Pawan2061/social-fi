@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.onboardUser = exports.updateMyProfile = exports.getUserProfile = exports.getMyProfile = void 0;
 const prisma_1 = require("../lib/prisma");
-const storage_1 = require("../lib/storage");
+const image_helper_1 = require("../lib/image-helper");
 const getMyProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -37,13 +37,25 @@ const getMyProfile = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                     //   ? await getSignedUrlForMedia(m.url)
                     //   :
                     //   `${PUBLIC_BUCKET_URL}/${m.url}`,
-                    url: m.url ? `${storage_1.PUBLIC_BUCKET_URL}/${m.url}` : null, locked: false }));
+                    url: m.url ? (0, image_helper_1.resolveMediaUrl)(m.url) : null, locked: false }));
             })));
             return Object.assign(Object.assign({}, post), { media });
         })));
+        const passSalesStats = yield prisma_1.prisma.ownership.aggregate({
+            where: { creatorId: userId },
+            _count: { id: true },
+        });
+        const uniqueHolders = yield prisma_1.prisma.ownership.groupBy({
+            by: ["userId"],
+            where: { creatorId: userId },
+            _count: { userId: true },
+        });
         res.status(200).json(Object.assign(Object.assign({}, user), { 
             // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-            image: user.image ? `${storage_1.PUBLIC_BUCKET_URL}/${user.image}` : null, posts }));
+            image: user.image ? (0, image_helper_1.resolveMediaUrl)(user.image) : null, posts, passSalesStats: {
+                totalPassesSold: passSalesStats._count.id,
+                uniqueHolders: uniqueHolders.length,
+            } }));
     }
     catch (e) {
         console.error(e);
@@ -70,6 +82,16 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
             where: { userId, creatorId: user.id },
         });
         const ownsPass = !!ownership;
+        // Get pass sales statistics for the creator
+        const passSalesStats = yield prisma_1.prisma.ownership.aggregate({
+            where: { creatorId: user.id },
+            _count: { id: true },
+        });
+        const uniqueHolders = yield prisma_1.prisma.ownership.groupBy({
+            by: ["userId"],
+            where: { creatorId: user.id },
+            _count: { userId: true },
+        });
         const posts = yield Promise.all(user.posts.map((post) => __awaiter(void 0, void 0, void 0, function* () {
             const media = yield Promise.all(post.media.map((m) => __awaiter(void 0, void 0, void 0, function* () {
                 if (!post.isPremium || ownsPass) {
@@ -77,7 +99,7 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
                         // url: m.needsSignedUrl
                         //   ? await getSignedUrlForMedia(m.url)
                         //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
-                        url: m.url ? `${storage_1.PUBLIC_BUCKET_URL}/${m.url}` : null, locked: false });
+                        url: m.url ? (0, image_helper_1.resolveMediaUrl)(m.url) : null, locked: false });
                 }
                 return Object.assign(Object.assign({}, m), { url: null, locked: true, widget: ownsPass ? user.Widget : null });
             })));
@@ -85,8 +107,11 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
         })));
         res.status(200).json(Object.assign(Object.assign({}, user), { 
             // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-            image: user.image ? `${storage_1.PUBLIC_BUCKET_URL}/${user.image}` : null, posts,
-            ownsPass }));
+            image: user.image ? (0, image_helper_1.resolveMediaUrl)(user.image) : null, posts,
+            ownsPass, passSalesStats: {
+                totalPassesSold: passSalesStats._count.id,
+                uniqueHolders: uniqueHolders.length,
+            } }));
     }
     catch (e) {
         console.error(e);
@@ -112,7 +137,7 @@ const updateMyProfile = (req, res) => __awaiter(void 0, void 0, void 0, function
         res.status(200).json(Object.assign(Object.assign({}, updated), { 
             // image: updated.image ? await getSignedUrlForMedia(updated.image) : null,
             // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-            image: updated.image ? `${storage_1.PUBLIC_BUCKET_URL}/${updated.image}` : null }));
+            image: updated.image ? (0, image_helper_1.resolveMediaUrl)(updated.image) : null }));
     }
     catch (e) {
         console.error(e);
@@ -148,9 +173,7 @@ const onboardUser = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             //   ? await getSignedUrlForMedia(updatedUser.image)
             //   : null,
             // image: user.image ? await getSignedUrlForMedia(user.image) : null,
-            image: updatedUser.image
-                ? `${storage_1.PUBLIC_BUCKET_URL}/${updatedUser.image}`
-                : null }));
+            image: updatedUser.image ? (0, image_helper_1.resolveMediaUrl)(updatedUser.image) : null }));
     }
     catch (e) {
         console.error(e);

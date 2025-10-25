@@ -136,6 +136,9 @@ export async function createPass(
     tokenMint: string;
     price: number;
     vault_address?: string;
+    metadataUri?: string;
+    name?: string;
+    description?: string;
   }
 ): Promise<Pass> {
   const res = await fetch(`${API_URL}/pass`, {

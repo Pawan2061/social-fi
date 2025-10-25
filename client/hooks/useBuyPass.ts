@@ -27,24 +27,26 @@ export function useBuyPass() {
       console.log("📝 Pass data:", data);
 
       console.log("💰 Executing on-chain purchase and revenue distribution...");
-      const { transactionSignature, nftMint } = await buyCreatorPass(
-        {
-          publicKey,
-          signTransaction: signTransaction as (
-            transaction: unknown
-          ) => Promise<unknown>,
-        },
-        {
-          tokenMint: data.tokenMint,
-          price: data.price,
-          creatorPublicKey: data.creatorPublicKey,
-          vaultAddress: data.vaultAddress,
-        }
-      );
+      const { transactionSignature, nftMint, metadataUri } =
+        await buyCreatorPass(
+          {
+            publicKey,
+            signTransaction: signTransaction as (
+              transaction: unknown
+            ) => Promise<unknown>,
+          },
+          {
+            tokenMint: data.tokenMint,
+            price: data.price,
+            creatorPublicKey: data.creatorPublicKey,
+            vaultAddress: data.vaultAddress,
+          }
+        );
 
       console.log("✅ On-chain purchase completed:", {
         transactionSignature,
         nftMint,
+        metadataUri,
       });
 
       // Step 2: Update backend with purchase record
@@ -61,6 +63,7 @@ export function useBuyPass() {
         ...result,
         nftMint,
         transactionSignature,
+        metadataUri,
       };
     },
     onSuccess: (data) => {

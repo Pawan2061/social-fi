@@ -11,4 +11,9 @@ claimRouter.get("/", auth_middleware_1.authenticate, claim_controller_1.getClaim
 claimRouter.post("/:claimId/accept", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(claim_schema_1.acceptClaimSchema), claim_controller_1.acceptClaim);
 claimRouter.get("/:id", auth_middleware_1.authenticate, claim_controller_1.getClaim);
 claimRouter.put("/:claimId", auth_middleware_1.authenticate, (0, validation_middleware_1.validateData)(claim_schema_1.updateClaimSchema), claim_controller_1.updateClaim);
+claimRouter.post("/:claimId/vote", auth_middleware_1.authenticate, claim_controller_1.voteOnClaim);
+claimRouter.post("/:claimId/finalize", auth_middleware_1.authenticate, claim_controller_1.finalizeClaim);
+claimRouter.post("/:claimId/finalize-with-distribution", auth_middleware_1.authenticate, claim_controller_1.finalizeClaimWithDistribution);
+claimRouter.post("/:claimId/payout", auth_middleware_1.authenticate, claim_controller_1.payoutClaim);
+claimRouter.post("/:claimId/refund", auth_middleware_1.authenticate, claim_controller_1.refundClaim);
 exports.default = claimRouter;

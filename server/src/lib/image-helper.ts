@@ -9,6 +9,12 @@ export const resolveMediaUrl = (url?: string | null): string | null => {
     "https://images.unsplash.com",
     "https://cdn.jsdelivr.net",
     "https://avatars.githubusercontent.com",
+    // IPFS URLs
+    "https://ipfs.io/ipfs/",
+    "https://gateway.pinata.cloud/ipfs/",
+    "https://cloudflare-ipfs.com/ipfs/",
+    "https://dweb.link/ipfs/",
+    "ipfs://",
   ];
 
   if (allowedPrefixes.some((prefix) => lower.startsWith(prefix))) {

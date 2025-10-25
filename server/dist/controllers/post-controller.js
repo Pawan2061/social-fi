@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.signUpload = exports.deletePost = exports.getFeed = exports.getPost = exports.createPost = void 0;
 const prisma_1 = require("../lib/prisma");
 const storage_1 = require("../lib/storage");
+const image_helper_1 = require("../lib/image-helper");
 const createPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
@@ -62,10 +63,7 @@ const getPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         const transformed = yield Promise.all(post.media.map((m) => __awaiter(void 0, void 0, void 0, function* () {
             if (!post.isPremium || ownsPass) {
-                return Object.assign(Object.assign({}, m), { 
-                    // url: m.needsSignedUrl
-                    //   ? await getSignedUrlForMedia(m.url)
-                    url: m.url ? `${storage_1.PUBLIC_BUCKET_URL}/${m.url}` : null, locked: false });
+                return Object.assign(Object.assign({}, m), { url: (0, image_helper_1.resolveMediaUrl)(m.url), locked: false });
             }
             return Object.assign(Object.assign({}, m), { url: null, locked: true });
         })));
@@ -89,6 +87,11 @@ const getFeed = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
         const ownedCreatorIds = ownerships.map((o) => o.creatorId);
         const posts = yield prisma_1.prisma.post.findMany({
+            where: {
+                creatorId: {
+                    not: userId,
+                },
+            },
             take: limit + 1,
             skip: cursor ? 1 : 0,
             cursor: cursor ? { id: cursor } : undefined,
@@ -98,18 +101,10 @@ const getFeed = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const hasMore = posts.length > limit;
         const items = yield Promise.all(posts.slice(0, limit).map((post) => __awaiter(void 0, void 0, void 0, function* () {
             const ownsPass = ownedCreatorIds.includes(post.creatorId);
-            const creator = Object.assign(Object.assign({}, post.creator), { 
-                // image: post.creator.image
-                //   ? await getSignedUrlForMedia(post.creator.image)
-                //   : null,
-                image: `${storage_1.PUBLIC_BUCKET_URL}/${post.creator.image}` });
+            const creator = Object.assign(Object.assign({}, post.creator), { image: (0, image_helper_1.resolveMediaUrl)(post.creator.image) });
             const media = yield Promise.all(post.media.map((m) => __awaiter(void 0, void 0, void 0, function* () {
                 if (!post.isPremium || ownsPass) {
-                    return Object.assign(Object.assign({}, m), { 
-                        // url: m.needsSignedUrl
-                        //   ? await getSignedUrlForMedia(m.url)
-                        //   : `${PUBLIC_BUCKET_URL}/${m.url}`,
-                        url: m.url ? `${storage_1.PUBLIC_BUCKET_URL}/${m.url}` : null, locked: false });
+                    return Object.assign(Object.assign({}, m), { url: (0, image_helper_1.resolveMediaUrl)(m.url), locked: false });
                 }
                 return Object.assign(Object.assign({}, m), { url: null, locked: true });
             })));
