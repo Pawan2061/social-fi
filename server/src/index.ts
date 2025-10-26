@@ -15,13 +15,14 @@ import jwt from "jsonwebtoken";
 dotenv.config();
 
 const app = express();
+
 app.use(
   cors({
     origin: "http://localhost:3000",
+    credentials: true,
   })
 );
 
-const PORT = process.env.PORT || 4000;
 
 app.use(express.json());
 
@@ -48,6 +49,8 @@ app.get("/api/jwt", (req, res) => {
 
   res.json({ token });
 });
+
+const PORT = process.env.PORT || 4000;
 
 app.listen(PORT, () => {
   console.log(`✅ Server listening on http://localhost:${PORT}`);
