@@ -265,43 +265,37 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {/* Stats Cards */}
-          <div className="bg-blue-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform -rotate-1">
-            <h3 className="font-extrabold text-sm">Posts</h3>
-            <p className="text-2xl font-black">{user.posts?.length ?? 0}</p>
+        {/* Stats (compact chips) */}
+        <div className="flex flex-wrap gap-2">
+          <div className="px-2 py-1 bg-blue-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
+            <span className="opacity-70">Posts:</span>
+            <span className="ml-1 font-mono text-[11px]">{user.posts?.length ?? 0}</span>
           </div>
 
-          <div className="bg-green-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000]">
-            <h3 className="font-extrabold text-sm">Passes Owned</h3>
-            <p className="text-2xl font-black">{user.pass ? "Yes" : "No"}</p>
+          <div className="px-2 py-1 bg-green-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
+            <span className="opacity-70">Pass Owned:</span>
+            <span className="ml-1 text-[11px]">{user.pass ? "Yes" : "No"}</span>
           </div>
 
           {user.pass && (
-            <div className="bg-purple-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform rotate-1 col-span-2 md:col-span-1">
-              <h3 className="font-extrabold text-sm">Pass Price</h3>
-              <p className="text-2xl font-black">
-                ${user.pass.price.toFixed(2)}
-              </p>
+            <div className="px-2 py-1 bg-purple-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
+              <span className="opacity-70">Price:</span>
+              <span className="ml-1 text-[11px]">${user.pass.price.toFixed(2)}</span>
             </div>
           )}
 
           {user.pass && (
-            <>
-              <div className="bg-orange-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform -rotate-1">
-                <h3 className="font-extrabold text-sm">Passes Sold</h3>
-                <p className="text-2xl font-black">
-                  {user.passSalesStats?.totalPassesSold ?? 0}
-                </p>
-              </div>
+            <div className="px-2 py-1 bg-orange-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
+              <span className="opacity-70">Sold:</span>
+              <span className="ml-1 text-[11px]">{user.passSalesStats?.totalPassesSold ?? 0}</span>
+            </div>
+          )}
 
-              <div className="bg-pink-200 border-3 border-black p-3 shadow-[3px_3px_0_0_#000] transform rotate-1">
-                <h3 className="font-extrabold text-sm">Unique Holders</h3>
-                <p className="text-2xl font-black">
-                  {user.passSalesStats?.uniqueHolders ?? 0}
-                </p>
-              </div>
-            </>
+          {user.pass && (
+            <div className="px-2 py-1 bg-pink-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
+              <span className="opacity-70">Holders:</span>
+              <span className="ml-1 text-[11px]">{user.passSalesStats?.uniqueHolders ?? 0}</span>
+            </div>
           )}
         </div>
 
