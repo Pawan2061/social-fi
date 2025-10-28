@@ -12,7 +12,7 @@ export const getVoteCounts = async (req: AuthRequest, res: Response) => {
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
     });
 
     if (!claim) {
@@ -21,15 +21,15 @@ export const getVoteCounts = async (req: AuthRequest, res: Response) => {
 
     const [yesVotes, noVotes, userVote] = await Promise.all([
       prisma.vote.count({
-        where: { claimId: Number(claimId), approve: true },
+        where: { claimId: claimId, approve: true },
       }),
       prisma.vote.count({
-        where: { claimId: Number(claimId), approve: false },
+        where: { claimId: claimId, approve: false },
       }),
       prisma.vote.findUnique({
         where: {
           claimId_userId: {
-            claimId: Number(claimId),
+            claimId: claimId,
             userId,
           },
         },
@@ -66,7 +66,7 @@ export const addVote = async (req: AuthRequest, res: Response) => {
     }
     const claim = await prisma.claim.findUnique({
       where: {
-        id: Number(claimId),
+        id: claimId,
       },
     });
     if (!claim) {
@@ -75,7 +75,7 @@ export const addVote = async (req: AuthRequest, res: Response) => {
     const existingVote = await prisma.vote.findUnique({
       where: {
         claimId_userId: {
-          claimId: Number(claimId),
+          claimId: claimId,
           userId,
         },
       },
@@ -88,7 +88,7 @@ export const addVote = async (req: AuthRequest, res: Response) => {
     }
     const vote = await prisma.vote.create({
       data: {
-        claimId: Number(claimId),
+        claimId: claimId,
         userId: userId,
         txSig,
         approve,

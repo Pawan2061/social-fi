@@ -16,7 +16,7 @@ export const PollVoteSchema = z.object({
 });
 
 export const WidgetSchema = z.object({
-  postId: z.number().nullable().optional(),
+  postId: z.string().nullable().optional(),
   type: WidgetType,
   title: z.string().min(1, "Widget title is required"),
   description: z.string().nullable().optional(),

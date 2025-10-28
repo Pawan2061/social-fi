@@ -69,7 +69,7 @@ const getUserProfile = (req, res) => __awaiter(void 0, void 0, void 0, function*
         const { id } = req.params;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const user = yield prisma_1.prisma.user.findUnique({
-            where: { id: Number(id) },
+            where: { id: id },
             include: {
                 pass: true,
                 posts: { include: { media: true } },

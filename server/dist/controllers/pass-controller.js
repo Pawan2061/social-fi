@@ -54,7 +54,7 @@ const getPass = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         if (!userId)
             return res.status(401).json({ error: "Unauthorized" });
         const pass = yield prisma_1.prisma.pass.findUnique({
-            where: { creatorId: Number(creatorId) },
+            where: { creatorId: creatorId },
             include: {
                 creator: true,
             },

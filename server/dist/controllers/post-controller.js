@@ -18,7 +18,7 @@ const createPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     try {
         let userId = (_a = req === null || req === void 0 ? void 0 : req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const { caption, isPremium, media } = req.body;
-        userId = Number(userId);
+        userId = userId;
         const post = yield prisma_1.prisma.post.create({
             data: {
                 creatorId: userId,
@@ -46,7 +46,7 @@ exports.createPost = createPost;
 const getPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const postId = Number(req.params.id);
+        const postId = req.params.id;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const post = yield prisma_1.prisma.post.findUnique({
             where: { id: postId },
@@ -78,9 +78,9 @@ exports.getPost = getPost;
 const getFeed = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
+        const cursor = typeof req.query.cursor === "string" ? req.query.cursor : undefined;
         const limit = parseInt(req.query.limit || "10", 10);
-        const userId = Number((_a = req.user) === null || _a === void 0 ? void 0 : _a.userId);
+        const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const ownerships = yield prisma_1.prisma.ownership.findMany({
             where: { userId },
             select: { creatorId: true },
@@ -121,7 +121,7 @@ exports.getFeed = getFeed;
 const deletePost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        const postId = Number(req.params.id);
+        const postId = req.params.id;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const post = yield prisma_1.prisma.post.findUnique({ where: { id: postId } });
         if (!post || post.creatorId !== userId) {

@@ -45,7 +45,7 @@ export const getPass = async (req: AuthRequest, res: Response) => {
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
     const pass = await prisma.pass.findUnique({
-      where: { creatorId: Number(creatorId) },
+      where: { creatorId: creatorId },
       include: {
         creator: true,
       },

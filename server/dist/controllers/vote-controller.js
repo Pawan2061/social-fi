@@ -20,22 +20,22 @@ const getVoteCounts = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
         });
         if (!claim) {
             return res.status(404).json({ error: "Claim not found" });
         }
         const [yesVotes, noVotes, userVote] = yield Promise.all([
             prisma_1.prisma.vote.count({
-                where: { claimId: Number(claimId), approve: true },
+                where: { claimId: claimId, approve: true },
             }),
             prisma_1.prisma.vote.count({
-                where: { claimId: Number(claimId), approve: false },
+                where: { claimId: claimId, approve: false },
             }),
             prisma_1.prisma.vote.findUnique({
                 where: {
                     claimId_userId: {
-                        claimId: Number(claimId),
+                        claimId: claimId,
                         userId,
                     },
                 },
@@ -72,7 +72,7 @@ const addVote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
             where: {
-                id: Number(claimId),
+                id: claimId,
             },
         });
         if (!claim) {
@@ -81,7 +81,7 @@ const addVote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const existingVote = yield prisma_1.prisma.vote.findUnique({
             where: {
                 claimId_userId: {
-                    claimId: Number(claimId),
+                    claimId: claimId,
                     userId,
                 },
             },
@@ -93,7 +93,7 @@ const addVote = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         const vote = yield prisma_1.prisma.vote.create({
             data: {
-                claimId: Number(claimId),
+                claimId: claimId,
                 userId: userId,
                 txSig,
                 approve,

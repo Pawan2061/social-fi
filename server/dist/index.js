@@ -20,8 +20,8 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)({
     origin: "http://localhost:3000",
+    credentials: true,
 }));
-const PORT = process.env.PORT || 4000;
 app.use(express_1.default.json());
 const apiRouter = express_1.default.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -42,6 +42,7 @@ app.get("/api/jwt", (req, res) => {
     });
     res.json({ token });
 });
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
     console.log(`✅ Server listening on http://localhost:${PORT}`);
 });

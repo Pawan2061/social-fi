@@ -60,7 +60,7 @@ const getClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { id } = req.params;
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(id) },
+            where: { id: id },
             include: {
                 media: true,
                 creator: true,
@@ -130,17 +130,17 @@ const updateClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const { reason, amount, media } = req.body;
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         const existingClaim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
         });
         if (!existingClaim || existingClaim.creatorId !== userId) {
             return res.status(403).json({ error: "Not allowed" });
         }
         const updated = yield prisma_1.prisma.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
             yield tx.media.deleteMany({
-                where: { claimId: Number(claimId) },
+                where: { claimId: claimId },
             });
             return tx.claim.update({
-                where: { id: Number(claimId) },
+                where: { id: claimId },
                 data: {
                     reason: reason !== null && reason !== void 0 ? reason : existingClaim.reason,
                     amount: amount !== null && amount !== void 0 ? amount : existingClaim.amount,
@@ -174,7 +174,7 @@ const voteOnClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
         });
         if (!claim) {
             return res.status(404).json({ error: "Claim not found" });
@@ -183,7 +183,7 @@ const voteOnClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         const vote = yield prisma_1.prisma.vote.upsert({
             where: {
                 claimId_userId: {
-                    claimId: Number(claimId),
+                    claimId: claimId,
                     userId: userId,
                 },
             },
@@ -192,7 +192,7 @@ const voteOnClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 txSig: transactionSignature,
             },
             create: {
-                claimId: Number(claimId),
+                claimId: claimId,
                 userId: userId,
                 approve: choice === "Yes",
                 txSig: transactionSignature,
@@ -218,7 +218,7 @@ const finalizeClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
             include: { votes: true },
         });
         if (!claim) {
@@ -260,7 +260,7 @@ const finalizeClaimWithDistribution = (req, res) => __awaiter(void 0, void 0, vo
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
             include: { votes: true, creator: true },
         });
         if (!claim) {
@@ -285,7 +285,7 @@ const finalizeClaimWithDistribution = (req, res) => __awaiter(void 0, void 0, vo
         let distributionResult = null;
         if (distributedAmount > 0) {
             try {
-                distributionResult = yield (0, exports.distributeVaultFunds)(parseInt(claimId), isApproved);
+                distributionResult = yield (0, exports.distributeVaultFunds)(claimId, isApproved);
                 console.log(`💰 Distribution result for claim ${claimId}:`, distributionResult);
             }
             catch (distError) {
@@ -319,7 +319,7 @@ const acceptClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: Number(claimId) },
+            where: { id: claimId },
             include: { votes: true },
         });
         if (!claim) {
@@ -357,7 +357,7 @@ const payoutClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             return res.status(401).json({ error: "Unauthorized" });
         }
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: parseInt(claimId) },
+            where: { id: claimId },
             include: { creator: true },
         });
         if (!claim) {
@@ -375,11 +375,11 @@ const payoutClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 .json({ error: "Claim must be approved before payout" });
         }
         // Distribute funds to creator (approved claim)
-        const distributionResult = yield (0, exports.distributeVaultFunds)(parseInt(claimId), true);
+        const distributionResult = yield (0, exports.distributeVaultFunds)(claimId, true);
         console.log("💰 Payout distribution result:", distributionResult);
         // Update claim status to paid
         const updatedClaim = yield prisma_1.prisma.claim.update({
-            where: { id: parseInt(claimId) },
+            where: { id: claimId },
             data: { status: "PAID" },
         });
         res.json({
@@ -405,7 +405,7 @@ const refundClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         }
         // Get the claim
         const claim = yield prisma_1.prisma.claim.findUnique({
-            where: { id: parseInt(claimId) },
+            where: { id: claimId },
             include: { creator: true },
         });
         if (!claim) {
@@ -424,11 +424,11 @@ const refundClaim = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 .json({ error: "Claim must be rejected before refund" });
         }
         // Distribute funds to NFT holders (rejected claim)
-        const distributionResult = yield (0, exports.distributeVaultFunds)(parseInt(claimId), false);
+        const distributionResult = yield (0, exports.distributeVaultFunds)(claimId, false);
         console.log("🔄 Refund distribution result:", distributionResult);
         // Update claim status to refunded
         const updatedClaim = yield prisma_1.prisma.claim.update({
-            where: { id: parseInt(claimId) },
+            where: { id: claimId },
             data: { status: "REJECTED" }, // Use existing status instead of REFUNDED
         });
         res.json({

@@ -251,8 +251,8 @@ export const getWidget = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    const id = parseInt(widgetId, 10);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid widget ID" });
+    const id = widgetId;
+    if (!id) return res.status(400).json({ error: "Invalid widget ID" });
 
     await updateWidgetStatuses();
 
@@ -338,8 +338,8 @@ export const voteOnPoll = async (req: AuthRequest, res: Response) => {
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
     if (!optionId) return res.status(400).json({ error: "Missing optionId" });
 
-    const id = parseInt(widgetId, 10);
-    if (isNaN(id)) return res.status(400).json({ error: "Invalid widget ID" });
+    const id = widgetId;
+    if (!id) return res.status(400).json({ error: "Invalid widget ID" });
 
     const widget = await prisma.widget.findUnique({
       where: { id },

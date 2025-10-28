@@ -16,7 +16,7 @@ router.get("/:passId", (req, res) => __awaiter(void 0, void 0, void 0, function*
     try {
         const { passId } = req.params;
         const pass = yield prisma_1.prisma.pass.findUnique({
-            where: { id: parseInt(passId) },
+            where: { id: passId },
             include: { creator: { select: { name: true } } },
         });
         if (!pass) {

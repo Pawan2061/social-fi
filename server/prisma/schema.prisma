@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id            Int      @id @default(autoincrement())
+  id            String   @id @default(uuid())
   name          String?
   email         String?  @unique
   emailVerified Boolean  @default(false)
@@ -32,8 +32,8 @@ model User {
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  creatorId Int
+  id        String   @id @default(uuid())
+  creatorId String
   creator   User     @relation(fields: [creatorId], references: [id])
   caption   String?
   isPremium Boolean  @default(false)
@@ -45,20 +45,20 @@ model Post {
 }
 
 model Media {
-  id             Int     @id @default(autoincrement())
-  postId         Int?
+  id             String  @id @default(uuid())
+  postId         String?
   post           Post?   @relation(fields: [postId], references: [id], onDelete: Cascade)
   type           String
   url            String
   thumbnail      String?
   needsSignedUrl Boolean @default(true)
   Claim          Claim?  @relation(fields: [claimId], references: [id])
-  claimId        Int?
+  claimId        String?
 }
 
 model Pass {
-  id            Int      @id @default(autoincrement())
-  creatorId     Int      @unique
+  id            String   @id @default(uuid())
+  creatorId     String   @unique
   creator       User     @relation(fields: [creatorId], references: [id])
   tokenMint     String   @unique
   vault_address String?  @unique
@@ -66,7 +66,6 @@ model Pass {
   createdAt     DateTime @default(now())
 
   metadataUri String?
-
   name        String?
   description String?
 
@@ -74,12 +73,12 @@ model Pass {
 }
 
 model Ownership {
-  id        Int      @id @default(autoincrement())
-  userId    Int
+  id        String   @id @default(uuid())
+  userId    String
   user      User     @relation(fields: [userId], references: [id])
-  passId    Int
+  passId    String
   pass      Pass     @relation(fields: [passId], references: [id])
-  creatorId Int
+  creatorId String
   nftMint   String?  @unique
   createdAt DateTime @default(now())
 
@@ -87,8 +86,8 @@ model Ownership {
 }
 
 model Claim {
-  id        Int         @id @default(autoincrement())
-  creatorId Int
+  id        String      @id @default(uuid())
+  creatorId String
   creator   User        @relation(fields: [creatorId], references: [id])
   reason    String
   media     Media[]
@@ -101,10 +100,10 @@ model Claim {
 }
 
 model Vote {
-  id        Int      @id @default(autoincrement())
-  claimId   Int
+  id        String   @id @default(uuid())
+  claimId   String
   claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
-  userId    Int
+  userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   approve   Boolean
   txSig     String
@@ -115,10 +114,10 @@ model Vote {
 }
 
 model Widget {
-  id           Int          @id @default(autoincrement())
-  creatorId    Int
+  id           String       @id @default(uuid())
+  creatorId    String
   creator      User         @relation(fields: [creatorId], references: [id])
-  postId       Int?
+  postId       String?
   post         Post?        @relation(fields: [postId], references: [id])
   type         WidgetType
   title        String
@@ -134,20 +133,20 @@ model Widget {
 }
 
 model PollOption {
-  id       Int        @id @default(autoincrement())
-  widgetId Int
+  id       String     @id @default(uuid())
+  widgetId String
   widget   Widget     @relation(fields: [widgetId], references: [id], onDelete: Cascade)
   text     String
   PollVote PollVote[]
 }
 
 model PollVote {
-  id        Int         @id @default(autoincrement())
-  widgetId  Int
+  id        String      @id @default(uuid())
+  widgetId  String
   widget    Widget      @relation(fields: [widgetId], references: [id], onDelete: Cascade)
-  optionId  Int?
+  optionId  String?
   option    PollOption? @relation(fields: [optionId], references: [id])
-  userId    Int
+  userId    String
   user      User        @relation(fields: [userId], references: [id])
   createdAt DateTime    @default(now())
 

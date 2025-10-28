@@ -228,8 +228,8 @@ const getWidget = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.userId;
         if (!userId)
             return res.status(401).json({ error: "Unauthorized" });
-        const id = parseInt(widgetId, 10);
-        if (isNaN(id))
+        const id = widgetId;
+        if (!id)
             return res.status(400).json({ error: "Invalid widget ID" });
         yield updateWidgetStatuses();
         const widget = yield prisma_1.prisma.widget.findUnique({
@@ -296,8 +296,8 @@ const voteOnPoll = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             return res.status(401).json({ error: "Unauthorized" });
         if (!optionId)
             return res.status(400).json({ error: "Missing optionId" });
-        const id = parseInt(widgetId, 10);
-        if (isNaN(id))
+        const id = widgetId;
+        if (!id)
             return res.status(400).json({ error: "Invalid widget ID" });
         const widget = yield prisma_1.prisma.widget.findUnique({
             where: { id },

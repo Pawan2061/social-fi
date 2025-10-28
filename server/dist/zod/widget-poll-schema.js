@@ -15,7 +15,7 @@ exports.PollVoteSchema = zod_1.z.object({
     createdAt: zod_1.z.date().optional(),
 });
 exports.WidgetSchema = zod_1.z.object({
-    postId: zod_1.z.number().nullable().optional(),
+    postId: zod_1.z.string().nullable().optional(),
     type: exports.WidgetType,
     title: zod_1.z.string().min(1, "Widget title is required"),
     description: zod_1.z.string().nullable().optional(),

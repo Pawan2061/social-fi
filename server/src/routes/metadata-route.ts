@@ -8,7 +8,7 @@ router.get("/:passId", async (req, res) => {
     const { passId } = req.params;
 
     const pass = await prisma.pass.findUnique({
-      where: { id: parseInt(passId) },
+      where: { id: passId },
       include: { creator: { select: { name: true } } },
     });
 

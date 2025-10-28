@@ -12,7 +12,7 @@ export const createPost = async (req: AuthRequest, res: Response) => {
   try {
     let userId = req?.user?.userId;
     const { caption, isPremium, media } = req.body;
-    userId = Number(userId);
+    userId = userId as string;
 
     const post = await prisma.post.create({
       data: {
@@ -40,7 +40,7 @@ export const createPost = async (req: AuthRequest, res: Response) => {
 
 export const getPost = async (req: AuthRequest, res: Response) => {
   try {
-    const postId = Number(req.params.id);
+    const postId = req.params.id;
     const userId = req.user?.userId;
 
     const post = await prisma.post.findUnique({
@@ -80,9 +80,10 @@ export const getPost = async (req: AuthRequest, res: Response) => {
 
 export const getFeed = async (req: AuthRequest, res: Response) => {
   try {
-    const cursor = req.query.cursor ? Number(req.query.cursor) : undefined;
+    const cursor =
+      typeof req.query.cursor === "string" ? req.query.cursor : undefined;
     const limit = parseInt((req.query.limit as string) || "10", 10);
-    const userId = Number(req.user?.userId);
+    const userId = req.user?.userId;
 
     const ownerships = await prisma.ownership.findMany({
       where: { userId },
@@ -139,7 +140,7 @@ export const getFeed = async (req: AuthRequest, res: Response) => {
 
 export const deletePost = async (req: AuthRequest, res: Response) => {
   try {
-    const postId = Number(req.params.id);
+    const postId = req.params.id;
     const userId = req.user?.userId;
 
     const post = await prisma.post.findUnique({ where: { id: postId } });

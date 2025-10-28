@@ -64,7 +64,7 @@ export const getClaim = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(id) },
+      where: { id: id },
       include: {
         media: true,
         creator: true,
@@ -162,7 +162,7 @@ export const updateClaim = async (req: AuthRequest, res: Response) => {
     const userId = req.user?.userId;
 
     const existingClaim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
     });
 
     if (!existingClaim || existingClaim.creatorId !== userId) {
@@ -171,11 +171,11 @@ export const updateClaim = async (req: AuthRequest, res: Response) => {
 
     const updated = await prisma.$transaction(async (tx) => {
       await tx.media.deleteMany({
-        where: { claimId: Number(claimId) },
+        where: { claimId: claimId },
       });
 
       return tx.claim.update({
-        where: { id: Number(claimId) },
+        where: { id: claimId },
         data: {
           reason: reason ?? existingClaim.reason,
           amount: amount ?? existingClaim.amount,
@@ -216,7 +216,7 @@ export const voteOnClaim = async (req: AuthRequest, res: Response) => {
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
     });
     if (!claim) {
       return res.status(404).json({ error: "Claim not found" });
@@ -226,7 +226,7 @@ export const voteOnClaim = async (req: AuthRequest, res: Response) => {
     const vote = await prisma.vote.upsert({
       where: {
         claimId_userId: {
-          claimId: Number(claimId),
+          claimId: claimId,
           userId: userId,
         },
       },
@@ -235,7 +235,7 @@ export const voteOnClaim = async (req: AuthRequest, res: Response) => {
         txSig: transactionSignature,
       },
       create: {
-        claimId: Number(claimId),
+        claimId: claimId,
         userId: userId,
         approve: choice === "Yes",
         txSig: transactionSignature,
@@ -262,7 +262,7 @@ export const finalizeClaim = async (req: AuthRequest, res: Response) => {
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
       include: { votes: true },
     });
     if (!claim) {
@@ -316,7 +316,7 @@ export const finalizeClaimWithDistribution = async (
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
       include: { votes: true, creator: true },
     });
     if (!claim) {
@@ -345,10 +345,7 @@ export const finalizeClaimWithDistribution = async (
     let distributionResult = null;
     if (distributedAmount > 0) {
       try {
-        distributionResult = await distributeVaultFunds(
-          parseInt(claimId),
-          isApproved
-        );
+        distributionResult = await distributeVaultFunds(claimId, isApproved);
         console.log(
           `💰 Distribution result for claim ${claimId}:`,
           distributionResult
@@ -384,7 +381,7 @@ export const acceptClaim = async (req: AuthRequest, res: Response) => {
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: Number(claimId) },
+      where: { id: claimId },
       include: { votes: true },
     });
     if (!claim) {
@@ -423,7 +420,7 @@ export const payoutClaim = async (req: AuthRequest, res: Response) => {
     }
 
     const claim = await prisma.claim.findUnique({
-      where: { id: parseInt(claimId) },
+      where: { id: claimId },
       include: { creator: true },
     });
 
@@ -445,15 +442,12 @@ export const payoutClaim = async (req: AuthRequest, res: Response) => {
     }
 
     // Distribute funds to creator (approved claim)
-    const distributionResult = await distributeVaultFunds(
-      parseInt(claimId),
-      true
-    );
+    const distributionResult = await distributeVaultFunds(claimId, true);
     console.log("💰 Payout distribution result:", distributionResult);
 
     // Update claim status to paid
     const updatedClaim = await prisma.claim.update({
-      where: { id: parseInt(claimId) },
+      where: { id: claimId },
       data: { status: "PAID" },
     });
 
@@ -480,7 +474,7 @@ export const refundClaim = async (req: AuthRequest, res: Response) => {
 
     // Get the claim
     const claim = await prisma.claim.findUnique({
-      where: { id: parseInt(claimId) },
+      where: { id: claimId },
       include: { creator: true },
     });
 
@@ -503,15 +497,12 @@ export const refundClaim = async (req: AuthRequest, res: Response) => {
     }
 
     // Distribute funds to NFT holders (rejected claim)
-    const distributionResult = await distributeVaultFunds(
-      parseInt(claimId),
-      false
-    );
+    const distributionResult = await distributeVaultFunds(claimId, false);
     console.log("🔄 Refund distribution result:", distributionResult);
 
     // Update claim status to refunded
     const updatedClaim = await prisma.claim.update({
-      where: { id: parseInt(claimId) },
+      where: { id: claimId },
       data: { status: "REJECTED" }, // Use existing status instead of REFUNDED
     });
 
@@ -528,7 +519,7 @@ export const refundClaim = async (req: AuthRequest, res: Response) => {
 };
 
 // Helper function to get NFT holders for a creator
-export const getNFTHoldersForCreator = async (creatorId: number) => {
+export const getNFTHoldersForCreator = async (creatorId: string) => {
   try {
     const ownerships = await prisma.ownership.findMany({
       where: { creatorId },
@@ -571,7 +562,7 @@ export const getVaultBalance = async (
 
 // Main fund distribution function
 export const distributeVaultFunds = async (
-  claimId: number,
+  claimId: string,
   isApproved: boolean
 ) => {
   try {
