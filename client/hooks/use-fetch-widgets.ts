@@ -7,9 +7,7 @@ export async function fetchWidgets() {
     throw new Error("No authentication token found");
   }
 
-  const API_URL = `${
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
-  }/widgets`;
+  const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "/api"}/widgets`;
   const res = await fetch(API_URL, {
     headers: {
       Authorization: `Bearer ${token}`,

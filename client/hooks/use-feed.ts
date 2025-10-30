@@ -5,9 +5,7 @@ import {
 } from "@tanstack/react-query";
 import { FeedResponse, FeedItem } from "@/types/feed/feed-types";
 
-const API_URL = `${
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
-}/posts/`;
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "/api"}/posts/`;
 
 export function useFeed() {
   return useQuery<FeedResponse>({

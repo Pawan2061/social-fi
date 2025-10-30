@@ -1,9 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { UserProfile } from "@/types/profile/profile-types";
 
-const API_URL = `${
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api"
-}/users/me`;
+const API_URL = `${process.env.NEXT_PUBLIC_API_URL || "/api"}/users/me`;
 
 export function useUserProfile() {
   return useQuery<UserProfile>({

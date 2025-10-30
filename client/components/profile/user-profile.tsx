@@ -47,10 +47,11 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   const initial = (displayName || "").trim().charAt(0).toUpperCase();
   const isOwnProfile = authUser?.id === user.id;
 
+  // Use relative path for Vercel proxy, or explicit URL for local dev
   const API_BASE =
     process.env.NEXT_PUBLIC_API_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
-    "";
+    "/api";
   const api = (path: string) => {
     // If no API_BASE, we expect a Next.js rewrite for the same-origin path
     if (!API_BASE && !path.startsWith("/"))
