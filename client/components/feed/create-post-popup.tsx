@@ -12,7 +12,13 @@ function cn(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
 }
 
-function Label({ htmlFor, children }: { htmlFor?: string; children: React.ReactNode }) {
+function Label({
+  htmlFor,
+  children,
+}: {
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
   return (
     <label htmlFor={htmlFor} className="text-sm font-extrabold text-black">
       {children}
@@ -40,7 +46,15 @@ function Textarea(
   );
 }
 
-function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function Toggle({
+  checked,
+  onChange,
+  label,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+}) {
   return (
     <button
       type="button"
@@ -86,11 +100,15 @@ type SelectedMedia = {
 };
 
 // API helpers
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000/api";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  process.env.NEXT_PUBLIC_API_BASE ||
+  "http://localhost:4000/api";
 
 async function fetchWithAuth(path: string, init: RequestInit = {}) {
-  const token = typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
-  console.log(token)
+  const token =
+    typeof window !== "undefined" ? localStorage.getItem("authToken") : null;
+  console.log(token);
   return fetch(`${API_BASE}${path}`, {
     ...init,
     headers: {
@@ -101,7 +119,9 @@ async function fetchWithAuth(path: string, init: RequestInit = {}) {
   });
 }
 
-async function signUpload(file: File): Promise<{ uploadUrl: string; key: string }> {
+async function signUpload(
+  file: File
+): Promise<{ uploadUrl: string; key: string }> {
   const res = await fetchWithAuth("/posts/media/sign-upload", {
     method: "POST",
     body: JSON.stringify({ fileName: file.name, fileType: file.type }),
@@ -119,8 +139,12 @@ async function putFileToSignedUrl(uploadUrl: string, file: File) {
   if (!putRes.ok) throw new Error("Failed to upload file to storage");
 }
 
-async function createPost(payload: { caption?: string; isPremium?: boolean; media?: Array<{ type: string; url: string; thumbnail?: string | null }> }): Promise<CreatedPost> {
-  console.log(JSON.stringify(payload))
+async function createPost(payload: {
+  caption?: string;
+  isPremium?: boolean;
+  media?: Array<{ type: string; url: string; thumbnail?: string | null }>;
+}): Promise<CreatedPost> {
+  console.log(JSON.stringify(payload));
   const res = await fetchWithAuth("/posts", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -130,7 +154,13 @@ async function createPost(payload: { caption?: string; isPremium?: boolean; medi
 }
 
 // Component
-export default function CreatePostPopup({ onClose, onCreated }: { onClose: () => void; onCreated?: (post: CreatedPost) => void }) {
+export default function CreatePostPopup({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated?: (post: CreatedPost) => void;
+}) {
   const [caption, setCaption] = useState("");
   const [isPremium, setIsPremium] = useState(false);
   const [selected, setSelected] = useState<SelectedMedia[]>([]);
@@ -185,12 +215,20 @@ export default function CreatePostPopup({ onClose, onCreated }: { onClose: () =>
       setError(null);
 
       // 1) Upload media if any
-      const uploaded: Array<{ type: string; url: string; thumbnail?: string | null }> = [];
+      const uploaded: Array<{
+        type: string;
+        url: string;
+        thumbnail?: string | null;
+      }> = [];
 
       for (const item of selected) {
         const { uploadUrl, key } = await signUpload(item.file);
         await putFileToSignedUrl(uploadUrl, item.file);
-        uploaded.push({ type: item.type, url: key, thumbnail: item.thumbnail || undefined });
+        uploaded.push({
+          type: item.type,
+          url: key,
+          thumbnail: item.thumbnail || undefined,
+        });
       }
 
       // 2) Create post

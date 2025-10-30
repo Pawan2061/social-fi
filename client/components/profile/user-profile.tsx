@@ -29,7 +29,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   // Edit state (local-only so we don't disturb other usages of `user`)
   const [editMode, setEditMode] = useState(false);
   const [displayName, setDisplayName] = useState(user.name || "");
-  const [displayImage, setDisplayImage] = useState<string | null>(user.image || null);
+  const [displayImage, setDisplayImage] = useState<string | null>(
+    user.image || null
+  );
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -45,18 +47,25 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   const initial = (displayName || "").trim().charAt(0).toUpperCase();
   const isOwnProfile = authUser?.id === user.id;
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    "";
   const api = (path: string) => {
     // If no API_BASE, we expect a Next.js rewrite for the same-origin path
-    if (!API_BASE && !path.startsWith("/")) throw new Error("API path must start with /");
+    if (!API_BASE && !path.startsWith("/"))
+      throw new Error("API path must start with /");
     return `${API_BASE}${path}`;
   };
 
   const signUpload = async (file: File) => {
-    const token = localStorage.getItem('authToken')
-    const r = await fetch(api("/api/users/profile-picture/sign-upload"), {
+    const token = localStorage.getItem("authToken");
+    const r = await fetch(api("/users/profile-picture/sign-upload"), {
       method: "POST",
-      headers: { "Content-Type": "application/json", 'Authorization': `Bearer ${token}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       credentials: "include",
       body: JSON.stringify({ fileName: file.name, fileType: file.type }),
     });
@@ -65,23 +74,26 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
   };
 
   const putToSignedUrl = async (uploadUrl: string, file: File) => {
-    const token = localStorage.getItem('authToken')
+    const token = localStorage.getItem("authToken");
 
     const r = await fetch(uploadUrl, {
       method: "PUT",
-      headers: { "Content-Type": file.type, 'Authorization': `Bearer ${token}` },
+      headers: { "Content-Type": file.type, Authorization: `Bearer ${token}` },
       body: file,
     });
     if (!r.ok) throw new Error("Failed to upload file");
   };
 
-  const updateProfile = async (payload: { name?: string; image?: string | null }) => {
-    const token = localStorage.getItem('authToken')
-    const r = await fetch(api("/api/users/me"), {
+  const updateProfile = async (payload: {
+    name?: string;
+    image?: string | null;
+  }) => {
+    const token = localStorage.getItem("authToken");
+    const r = await fetch(api("/users/me"), {
       method: "PUT",
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       credentials: "include",
       body: JSON.stringify(payload),
@@ -137,8 +149,8 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
         e instanceof Error
           ? e.message
           : typeof e === "string"
-            ? e
-            : "Failed to save changes";
+          ? e
+          : "Failed to save changes";
       setSaveError(message);
     } finally {
       setSaving(false);
@@ -206,7 +218,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-black truncate">{displayName}</h1>
-            <p className="text-sm font-bold text-black/70 truncate">{user.email}</p>
+            <p className="text-sm font-bold text-black/70 truncate">
+              {user.email}
+            </p>
           </div>
           <Button
             onClick={() => setEditMode((v) => !v)}
@@ -222,7 +236,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
           <div className="bg-white border-3 border-black p-3 shadow-[3px_3px_0_0_#000] -mt-1">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="col-span-2">
-                <label className="block text-sm font-extrabold mb-1">Display Name</label>
+                <label className="block text-sm font-extrabold mb-1">
+                  Display Name
+                </label>
                 <input
                   type="text"
                   value={displayName}
@@ -232,7 +248,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
                 />
               </div>
               <div className="col-span-1">
-                <label className="block text-sm font-extrabold mb-1">Profile Image</label>
+                <label className="block text-sm font-extrabold mb-1">
+                  Profile Image
+                </label>
                 <input
                   type="file"
                   accept="image/*"
@@ -243,7 +261,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
             </div>
 
             {saveError && (
-              <p className="text-sm font-bold text-red-600 mt-2">Error: {saveError}</p>
+              <p className="text-sm font-bold text-red-600 mt-2">
+                Error: {saveError}
+              </p>
             )}
 
             <div className="flex gap-2 mt-3">
@@ -269,7 +289,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
         <div className="flex flex-wrap gap-2">
           <div className="px-2 py-1 bg-blue-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
             <span className="opacity-70">Posts:</span>
-            <span className="ml-1 font-mono text-[11px]">{user.posts?.length ?? 0}</span>
+            <span className="ml-1 font-mono text-[11px]">
+              {user.posts?.length ?? 0}
+            </span>
           </div>
 
           <div className="px-2 py-1 bg-green-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
@@ -280,21 +302,27 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
           {user.pass && (
             <div className="px-2 py-1 bg-purple-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
               <span className="opacity-70">Price:</span>
-              <span className="ml-1 text-[11px]">${user.pass.price.toFixed(2)}</span>
+              <span className="ml-1 text-[11px]">
+                ${user.pass.price.toFixed(2)}
+              </span>
             </div>
           )}
 
           {user.pass && (
             <div className="px-2 py-1 bg-orange-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
               <span className="opacity-70">Sold:</span>
-              <span className="ml-1 text-[11px]">{user.passSalesStats?.totalPassesSold ?? 0}</span>
+              <span className="ml-1 text-[11px]">
+                {user.passSalesStats?.totalPassesSold ?? 0}
+              </span>
             </div>
           )}
 
           {user.pass && (
             <div className="px-2 py-1 bg-pink-200 border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
               <span className="opacity-70">Holders:</span>
-              <span className="ml-1 text-[11px]">{user.passSalesStats?.uniqueHolders ?? 0}</span>
+              <span className="ml-1 text-[11px]">
+                {user.passSalesStats?.uniqueHolders ?? 0}
+              </span>
             </div>
           )}
         </div>
@@ -310,7 +338,9 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
         {user.pass && (
           <div className="bg-yellow-100 border-4 border-black rounded-md p-3 shadow-[4px_4px_0_0_#000] transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="font-black text-sm text-black uppercase tracking-wide">🎟️ Creator&apos;s Pass</h3>
+              <h3 className="font-black text-sm text-black uppercase tracking-wide">
+                🎟️ Creator&apos;s Pass
+              </h3>
               {!isOwnProfile && (
                 <div className="shrink-0">
                   <BuyPassButton
@@ -327,18 +357,24 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
             <div className="mt-2 flex flex-wrap gap-2">
               <div className="px-2 py-1 bg-white border-2 border-black text-xs font-bold shadow-[2px_2px_0_0_#000]">
                 <span className="opacity-70">Token:</span>
-                <span className="ml-1 font-mono text-[10px] text-gray-800">{user.pass.tokenMint.slice(0, 20)}...</span>
+                <span className="ml-1 font-mono text-[10px] text-gray-800">
+                  {user.pass.tokenMint.slice(0, 20)}...
+                </span>
               </div>
               <div className="px-2 py-1 bg-white border-2 border-black text-xs font-bold shadow-[2px_2px_0_0_#000]">
                 <span className="opacity-70">Vault:</span>
-                <span className="ml-1 font-mono text-[10px] text-gray-800">{user.pass.vault_address.slice(0, 20)}...</span>
+                <span className="ml-1 font-mono text-[10px] text-gray-800">
+                  {user.pass.vault_address.slice(0, 20)}...
+                </span>
               </div>
               <div className="px-2 py-1 bg-white border-2 border-black text-xs font-black shadow-[2px_2px_0_0_#000]">
                 ${user.pass.price.toFixed(2)}
               </div>
               <div className="px-2 py-1 bg-white border-2 border-black text-xs font-bold shadow-[2px_2px_0_0_#000]">
                 <span className="opacity-70">Created:</span>
-                <span className="ml-1 text-[10px]">{new Date(user.pass.createdAt).toLocaleDateString()}</span>
+                <span className="ml-1 text-[10px]">
+                  {new Date(user.pass.createdAt).toLocaleDateString()}
+                </span>
               </div>
             </div>
 
@@ -348,7 +384,11 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
                 <div className="flex items-center gap-2">
                   <span className="text-xs font-extrabold">🏦 Vault</span>
                   <span className="px-2 py-0.5 bg-green-200 border-2 border-black text-[11px] font-black shadow-[2px_2px_0_0_#000]">
-                    {loadingVault ? "Loading..." : vaultInfo ? vaultInfo.balanceFormatted : "—"}
+                    {loadingVault
+                      ? "Loading..."
+                      : vaultInfo
+                      ? vaultInfo.balanceFormatted
+                      : "—"}
                   </span>
                 </div>
                 <Button
@@ -362,12 +402,18 @@ export default function UserProfileComponent({ user }: UserProfileProps) {
 
               {vaultInfo && !loadingVault && (
                 <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <p className="text-[11px] font-mono text-gray-700">Addr: {vaultInfo.vaultAddress.slice(0, 20)}...</p>
-                  <p className="text-[11px] font-mono text-gray-700">Lamports: {vaultInfo.balanceLamports.toLocaleString()}</p>
+                  <p className="text-[11px] font-mono text-gray-700">
+                    Addr: {vaultInfo.vaultAddress.slice(0, 20)}...
+                  </p>
+                  <p className="text-[11px] font-mono text-gray-700">
+                    Lamports: {vaultInfo.balanceLamports.toLocaleString()}
+                  </p>
                 </div>
               )}
               {!vaultInfo && !loadingVault && (
-                <p className="mt-2 text-[11px] font-bold text-red-600">Failed to load</p>
+                <p className="mt-2 text-[11px] font-bold text-red-600">
+                  Failed to load
+                </p>
               )}
             </div>
           </div>

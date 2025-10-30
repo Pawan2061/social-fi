@@ -131,17 +131,16 @@ export default function WidgetFeed({ items }: WidgetFeedProps) {
       const token = localStorage.getItem("authToken");
       if (!token) throw new Error("No authentication token found");
 
-      const res = await fetch(
-        `http://localhost:4000/api/widgets/${widgetId}/vote`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ optionId }),
-        }
-      );
+      const API_URL =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+      const res = await fetch(`${API_URL}/widgets/${widgetId}/vote`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ optionId }),
+      });
       if (!res.ok) throw new Error(await res.text());
       // Refresh to reflect updated counts and vote state
       refetch();

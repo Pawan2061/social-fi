@@ -41,7 +41,9 @@ export async function fetchNFTMetadata(
       }
     }
 
-    if (metadataUri.startsWith("http://localhost:4000/api/metadata/")) {
+    const API_BASE =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+    if (metadataUri.startsWith(`${API_BASE}/metadata/`)) {
       try {
         const response = await fetch(metadataUri);
         if (!response.ok) {
