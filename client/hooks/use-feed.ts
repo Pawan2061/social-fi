@@ -71,7 +71,14 @@ export function useInfiniteFeed(limit: number = 10) {
           : null;
       if (!token) throw new Error("No authentication token found");
 
-      const url = new URL(API_URL);
+      // Construct URL - handle both relative and absolute paths
+      const baseUrl = API_URL.startsWith("http")
+        ? API_URL
+        : typeof window !== "undefined"
+        ? `${window.location.origin}${API_URL}`
+        : API_URL;
+
+      const url = new URL(baseUrl);
       if (pageParam) url.searchParams.set("cursor", String(pageParam));
       if (limit) url.searchParams.set("limit", String(limit));
 
