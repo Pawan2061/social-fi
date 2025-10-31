@@ -162,7 +162,7 @@ export async function createPass(
 export async function buyPass(
   token: string,
   data: {
-    passId: number;
+    passId: string;
     txId: string;
     nftMint: string;
   }

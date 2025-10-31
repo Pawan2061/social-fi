@@ -5,7 +5,7 @@ import { buyPass } from "@/lib/api";
 import { buyCreatorPass } from "@/lib/nft-utils";
 
 interface BuyPassData {
-  passId: number;
+  passId: string;
   tokenMint: string;
   price: number;
   creatorPublicKey: string;
@@ -49,8 +49,17 @@ export function useBuyPass() {
         metadataUri,
       });
 
-      // Step 2: Update backend with purchase record
       console.log("📝 Updating backend with purchase record...");
+
+      // Validate passId is a non-empty string (should be UUID)
+      if (
+        !data.passId ||
+        typeof data.passId !== "string" ||
+        data.passId.trim() === ""
+      ) {
+        throw new Error("passId is required and must be a valid string");
+      }
+
       const result = await buyPass(token, {
         passId: data.passId,
         txId: transactionSignature,
