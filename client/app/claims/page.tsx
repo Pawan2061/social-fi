@@ -669,7 +669,7 @@ export default function ClaimsPage() {
         </div>
 
         {/* Create Claim Button - Only for Creators */}
-        {isCreator ? (
+        {isCreator && (
           <div className="text-center mb-8">
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
@@ -677,18 +677,6 @@ export default function ClaimsPage() {
             >
               {showCreateForm ? "Cancel" : "Create New Claim"}
             </button>
-          </div>
-        ) : (
-          <div className="text-center mb-8">
-            <div className="bg-yellow-100 border-4 border-yellow-500 shadow-[6px_6px_0_0_#000] p-6 max-w-md mx-auto transform -rotate-1">
-              <h3 className="text-lg font-extrabold text-yellow-800 mb-2">
-                Creator Access Required
-              </h3>
-              <p className="text-yellow-700 font-bold">
-                Only creators with a pass can create claims. You can still vote
-                on existing claims!
-              </p>
-            </div>
           </div>
         )}
 

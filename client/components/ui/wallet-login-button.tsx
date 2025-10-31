@@ -67,7 +67,6 @@ export default function WalletAuthButton() {
     }
   }, [user, router, justLoggedIn]);
 
-  // Track wallet initialization to prevent premature logout
   useEffect(() => {
     if (connected || publicKey) {
       setWalletInitialized(true);
@@ -75,7 +74,6 @@ export default function WalletAuthButton() {
   }, [connected, publicKey]);
 
   useEffect(() => {
-    // Only logout if wallet was previously connected and now disconnected
     if (!connected && token && walletInitialized) {
       logout();
       router.push("/");
@@ -117,7 +115,7 @@ export default function WalletAuthButton() {
             </span>
           </button>
 
-          {showDropdown && (
+          {/* {showDropdown && (
             <>
               <div
                 className="fixed inset-0 z-10"
@@ -132,7 +130,7 @@ export default function WalletAuthButton() {
                 </button>
               </div>
             </>
-          )}
+          )} */}
         </div>
       )}
 

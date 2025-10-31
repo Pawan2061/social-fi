@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import CreatePostPopup from "@/components/feed/create-post-popup";
 import CreateNewWidget from "@/components/widgets/create-new-widget";
+import { useUserProfile } from "@/hooks/use-user-profile";
 
 interface NavigationItem {
   name: string;
@@ -33,9 +34,12 @@ export function Sidebar({ user, className }: SidebarProps) {
   const [showCreateChoice, setShowCreateChoice] = useState(false);
   const [showCreateWidget, setShowCreateWidget] = useState(false);
 
-  // ensure portals only render on client
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  const { data: userProfile } = useUserProfile();
+  const isCreator =
+    userProfile?.pass !== null && userProfile?.pass !== undefined;
 
   const navigationItems: NavigationItem[] = [
     {
@@ -49,11 +53,11 @@ export function Sidebar({ user, className }: SidebarProps) {
       icon: Search,
       badge: 3,
     },
-    {
-      name: "Settings",
-      href: "/settings",
-      icon: Settings,
-    },
+    // {
+    //   name: "Settings",
+    //   href: "/settings",
+    //   icon: Settings,
+    // },
     {
       name: "Profile",
       href: "/profile",
@@ -203,15 +207,17 @@ export function Sidebar({ user, className }: SidebarProps) {
                 >
                   Create Post
                 </Button>
-                <Button
-                  onClick={() => {
-                    setShowCreateChoice(false);
-                    setShowCreateWidget(true);
-                  }}
-                  className="w-full bg-pink-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold"
-                >
-                  Create Widget
-                </Button>
+                {isCreator && (
+                  <Button
+                    onClick={() => {
+                      setShowCreateChoice(false);
+                      setShowCreateWidget(true);
+                    }}
+                    className="w-full bg-pink-300 text-black border-4 border-black shadow-[6px_6px_0_0_#000] hover:shadow-[8px_8px_0_0_#000] font-extrabold"
+                  >
+                    Create Widget
+                  </Button>
+                )}
               </div>
             </div>
           </div>,

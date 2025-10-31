@@ -54,6 +54,10 @@ export default function ProfilePage() {
   console.log("userProfile", userProfile);
   const deleteMutation = useDeletePost();
 
+  // Check if user is a creator (has a pass)
+  const isCreator =
+    userProfile?.pass !== null && userProfile?.pass !== undefined;
+
   const [activeTab, setActiveTab] = useState<"posts" | "widgets">("posts");
 
   const myWidgets: WidgetListItem[] = useMemo(() => {
@@ -178,26 +182,55 @@ export default function ProfilePage() {
       <PassesComponent passes={userProfile.passes ?? []} />
 
       <div className="space-y-6">
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            onClick={() => setActiveTab("posts")}
-            className={`px-4 py-2 font-extrabold border-4 border-black shadow-[4px_4px_0_0_#000] ${
-              activeTab === "posts" ? "bg-blue-300" : "bg-white"
-            }`}
-          >
-            Posts
-          </Button>
-          <Button
-            onClick={() => setActiveTab("widgets")}
-            className={`px-4 py-2 font-extrabold border-4 border-black shadow-[4px_4px_0_0_#000] ${
-              activeTab === "widgets" ? "bg-pink-300" : "bg-white"
-            }`}
-          >
-            Widgets
-          </Button>
-        </div>
+        {isCreator && (
+          <div className="flex items-center justify-center gap-3">
+            <Button
+              onClick={() => setActiveTab("posts")}
+              className={`px-4 py-2 font-extrabold border-4 border-black shadow-[4px_4px_0_0_#000] ${
+                activeTab === "posts" ? "bg-blue-300" : "bg-white"
+              }`}
+            >
+              Posts
+            </Button>
+            <Button
+              onClick={() => setActiveTab("widgets")}
+              className={`px-4 py-2 font-extrabold border-4 border-black shadow-[4px_4px_0_0_#000] ${
+                activeTab === "widgets" ? "bg-pink-300" : "bg-white"
+              }`}
+            >
+              Widgets
+            </Button>
+          </div>
+        )}
 
-        {activeTab === "posts" ? (
+        {activeTab === "widgets" && isCreator ? (
+          <>
+            {myWidgets.length > 0 ? (
+              <div className="space-y-8">
+                <div className="text-center">
+                  <h2 className="text-3xl font-black mb-2 transform rotate-1 inline-block bg-pink-300 border-4 border-black px-6 py-2 shadow-[8px_8px_0_0_#000]">
+                    Your Widgets ({myWidgets.length})
+                  </h2>
+                  <p className="text-lg font-bold mt-4">
+                    Manage your goals and polls
+                  </p>
+                </div>
+                <WidgetFeed items={myWidgets} />
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
+                  <h3 className="font-extrabold text-xl mb-2">
+                    No Widgets Yet
+                  </h3>
+                  <p className="text-gray-600 font-bold">
+                    Create a goal or a poll to engage your community.
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
           <>
             {(userProfile.posts ?? []).filter(
               (p) => !p.media?.some((m) => m.locked)
@@ -283,33 +316,6 @@ export default function ProfilePage() {
                   <p className="text-gray-600 font-bold">
                     You haven&apos;t created any posts yet. Start sharing your
                     thoughts!
-                  </p>
-                </div>
-              </div>
-            )}
-          </>
-        ) : (
-          <>
-            {myWidgets.length > 0 ? (
-              <div className="space-y-8">
-                <div className="text-center">
-                  <h2 className="text-3xl font-black mb-2 transform rotate-1 inline-block bg-pink-300 border-4 border-black px-6 py-2 shadow-[8px_8px_0_0_#000]">
-                    Your Widgets ({myWidgets.length})
-                  </h2>
-                  <p className="text-lg font-bold mt-4">
-                    Manage your goals and polls
-                  </p>
-                </div>
-                <WidgetFeed items={myWidgets} />
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="bg-white border-4 border-black shadow-[6px_6px_0_0_#000] p-8 transform rotate-1">
-                  <h3 className="font-extrabold text-xl mb-2">
-                    No Widgets Yet
-                  </h3>
-                  <p className="text-gray-600 font-bold">
-                    Create a goal or a poll to engage your community.
                   </p>
                 </div>
               </div>
