@@ -292,7 +292,7 @@ export default function CreatorInsuranceLanding() {
       title: "Creator Insurance",
       subtitle: "DAO",
       description:
-        "A community-driven safety net that fuses NFT fan passes + insurance pools + AI assistance. Protect creators from financial fragility with transparent, on-chain protection.",
+        "Empower creators with real financial protection. Fans buy NFT passes, creators get protected. When setbacks happen, the community votes and pays out—all transparent, all on-chain. It's Patreon meets mutual insurance, powered by Web3.",
       align: "center" as const,
       actions: [
         {

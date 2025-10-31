@@ -22,7 +22,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Social Fi - Web3 Safety Net for Content Creators",
   description:
-    "A community-driven safety net that fuses NFT fan passes + insurance pools + AI assistance. Protect creators from financial fragility with transparent, on-chain protection.",
+    "Empower creators with real financial protection. Fans buy NFT passes, creators get protected. When setbacks happen, the community votes and pays out—all transparent, all on-chain. It's Patreon meets mutual insurance, powered by Web3.",
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "oklch(0.995 0 0)" },
     { media: "(prefers-color-scheme: dark)", color: "oklch(0.14 0.02 260)" },
