@@ -52,7 +52,7 @@ export function useBuyPass() {
       // Step 2: Update backend with purchase record
       console.log("📝 Updating backend with purchase record...");
       const result = await buyPass(token, {
-        passId: data.passId,
+        passId: Number(data.passId),
         txId: transactionSignature,
         nftMint: nftMint,
       });
