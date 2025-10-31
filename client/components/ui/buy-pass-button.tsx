@@ -5,7 +5,7 @@ import { useBuyPass } from "@/hooks/useBuyPass";
 import { Button } from "@/components/ui/button";
 
 interface BuyPassButtonProps {
-  passId: number;
+  passId: string;
   tokenMint: string;
   price: number;
   creatorPublicKey: string;

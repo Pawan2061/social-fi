@@ -21,8 +21,8 @@ export interface UserProfile {
 }
 
 export interface UserPass {
-  id: number;
-  creatorId: number;
+  id: string; // UUID string from database
+  creatorId: string; // UUID string from database
   tokenMint: string;
   vault_address: string;
   price: number;
@@ -51,10 +51,10 @@ export interface PostMedia {
 }
 
 export interface UserPassOwnership {
-  id: number;
-  userId: number;
-  passId: number;
-  creatorId: number;
+  id: string; // UUID string from database
+  userId: string; // UUID string from database
+  passId: string; // UUID string from database
+  creatorId: string; // UUID string from database
   createdAt: string;
   pass: UserPass;
 }
