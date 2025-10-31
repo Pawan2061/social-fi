@@ -11,6 +11,6 @@ export const updatePassSchema = z.object({
 });
 
 export const buyPassSchema = z.object({
-  passId: z.number().int().positive("passId must be a valid integer"),
+  passId: z.string().uuid("passId must be a valid UUID"),
   txId: z.string().min(1, "Transaction ID is required"),
 });
